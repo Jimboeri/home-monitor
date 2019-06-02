@@ -1,0 +1,39 @@
+{% extends "monitor/webbase.html" %}
+
+{% block title %}
+Node Details
+{% endblock %}
+
+{% block web-body %}
+  <p>Logged in as {{ user.username }}</p>
+  <p>This is the information currently held for <b>{{ node.nodeID }}</b></p>
+    <table>
+      <tr>
+        <td>Node ID:</td><td><span class="nodeup">{{ node.nodeID }}</span></td>
+      </tr>
+      <tr>
+        <td>Description:</td><td> {{ node.descr }}</td>
+      </tr>
+
+      <tr>
+        <td>Current status:</td><td> {{ node.status }}</td>
+      </tr>
+      <tr>
+        <td>Specific node topic:</td><td>{{ node.topic }}</td>
+      </tr>
+      <tr>
+        <td>Last seen at:</td><td>{{ node.lastseen }}</td>
+      </tr>
+      <tr>
+        <td>Last data:</td><td>{{ node.lastData }}</td>
+      </tr>
+    
+    </table>
+  
+  <form action="{% url 'node_detail' node.id  %}" method="post">
+  {% csrf_token %}
+  <input type="hidden", name="newStatus", value="offline">
+  <input type="button", name="newStatus", value
+  <input type="submit" value="Change status">
+  </form>
+{% endblock %}

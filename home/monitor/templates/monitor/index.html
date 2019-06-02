@@ -1,0 +1,34 @@
+{% extends "monitor/webbase.html" %}
+
+{% block title %}
+Node List
+{% endblock %}
+
+{% block web-body %}
+    <h1>Node List</h1>
+    <div id="devices">
+      <div id="onlineNodes" class="devices">
+        {% if onlineNodes %}
+          <p>Online nodes</p>
+          <ul id='nodeonline'>
+            {% for node in onlineNodes %}
+                <li><a href="{% url 'node_detail' node.id %}">{{node.nodeID}}</a></li>
+            {% endfor %}
+            </ul>
+        {% else %}
+            <p>No nodes are online</p>
+        {% endif %}
+    </div>
+    
+    {% if offlineNodes %}
+      <div id="offlineNodes" class="devices">
+          <p>Offline nodes</p>
+          <ul id='nodeoffline'>
+            {% for node in offlineNodes %}
+                <li><a href="{% url 'node_detail' node.id %}">{{node.nodeID}}</a></li>
+            {% endfor %}
+            </ul>
+        </div>
+     {% endif %}
+  </div>
+{% endblock %}

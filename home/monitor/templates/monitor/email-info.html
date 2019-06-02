@@ -1,0 +1,34 @@
+{% extends "monitor/email-base.html" %}
+
+{% block title %}
+MQTT Request
+{% endblock %}
+
+{% block email-body %}
+  <p>Hi <b>{{ name }}</b></p>
+
+  <p>monitor received a request to provide system information. 
+  </p>
+  
+  <p>This is the information currently held for <b>{{ node.nodeID }}</b></p>
+    <table>
+      <tr>
+        <td>Node ID:</td><td>{{ node.nodeID }}</td>
+      </tr>
+      <tr>
+        <td>Current status:</td><td> {{ node.textStatus }}</td>
+      </tr>
+      
+      <tr>
+        <td>Specific node topic:</td><td>{{ node.topic }}</td>
+      </tr>
+      <tr>
+        <td>Last seen at:</td><td>{{ node.lastseen }}</td>
+      </tr>
+      <tr>
+        <td>Is this a Gateway?:</td><td> {{ node.is_gateway }}</td>
+      </tr>
+
+    </table>
+  
+{% endblock %}
