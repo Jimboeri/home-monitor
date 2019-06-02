@@ -15,6 +15,7 @@ Node down notification
   <p>This is the information currently held for <b>{{ node.nodeID }}</b></p>
   <table class = "node-details">
     <tr>
+
       <td class = "node-details">Node ID:</td><td class = "node-details">{{ node.nodeID }}</td>
     </tr>
     <tr>
@@ -30,12 +31,16 @@ Node down notification
     <tr>
       <td class = "node-details">Last notification sent at:</td><td class = "node-details">{{ node.status_sent }}</td>
     </tr>
-    <tr>
-      <td class = "node-details">Is this a Gateway:</td><td class = "node-details"> {{ node.is_gateway }}</td>
-    </tr>
     {% if node.battName %}
       <tr>
-        <td class = "node-details">Last battery level:</td><td class = "node-details"> {{ node.battLevel }}</td>
+        <td class = "node-details">Last battery level:</td>
+        {% if node.battLevel > node.battWarn %}
+          <td class = "battNormal"> {{ node.battLevel }}</td>
+        {% elif node.battLevel > node.battCritical %}
+          <td class = "battWarning"> {{ node.battLevel }}</td>
+        {% else %}
+          <td class = "battCritical"> {{ node.battLevel }}</td>
+        {% endif %}
       </tr>
       <tr>
         <td class = "node-details">Warn when battery is below:</td><td class = "node-details"> {{ node.battWarn }}</td>
@@ -43,7 +48,8 @@ Node down notification
       <tr>
         <td class = "node-details">Critical battery level:</td><td class = "node-details"> {{ node.battCritical }}</td>
       </tr>
-
+    {% else %}
+      <p>No battery data</p>
     {% endif %}
   </table>
   <div class="mqtt_instructions">

@@ -149,7 +149,8 @@ def mqtt_monitor():
 
     aNode = Node.objects.get(pk=10)
     cDict = {'node': aNode}
-    sendNotifyEmail("Test email", cDict, "monitor/email-info.html")
+    sendNotifyEmail("Test email", cDict, "monitor/email-down.html")
+    print("Sent test email")
 
     while True:
       time.sleep(1)
