@@ -6,6 +6,7 @@ from django import template
 import django.template.loader
 from django.conf import settings
 import os, sys, time
+import pickle
 #import logging
 import datetime
 from django.utils import timezone
@@ -38,7 +39,7 @@ def mqtt_on_connect(client, userdata, flags, rc):
 #********************************************************************
 def mqtt_on_message(client, userdata, msg):
   """This procedure is called each time a mqtt message is received"""
-  #print(msg.topic)
+  
   sPayload = msg.payload.decode()
   jPayload = json.loads(msg.payload)
   #print(jPayload)
@@ -46,16 +47,17 @@ def mqtt_on_message(client, userdata, msg):
   cNodeID = cTopic[1]
   try:
     nd, created = Node.objects.get_or_create(nodeID = cNodeID)
-    if sPayload == "Offline":
-      nd.textSstatus = sPayload
-      nd.status = "X"
-    else:
+    if nd.status != "M":
+      if sPayload == "Offline":
+        nd.textSstatus = sPayload
+        nd.status = "X"
+      else:
       
-      if nd.status == "X":
-        node_back_online(nd)
-      nd.lastseen = timezone.make_aware(datetime.datetime.now(), timezone.get_current_timezone())
-      nd.textSstatus = "Online"
-      nd.status = "C"
+        if nd.status == "X":
+          node_back_online(nd)
+        nd.lastseen = timezone.make_aware(datetime.datetime.now(), timezone.get_current_timezone())
+        nd.textSstatus = "Online"
+        nd.status = "C"
     nd.lastData = sPayload
     if nd.battName:
       #print("Battery name is {}".format(nd.battName))
@@ -71,7 +73,6 @@ def mqtt_on_message(client, userdata, msg):
     print("Node {} has been created".format(nd.nodeID))
   else:
     print("Node {} has been updated".format(nd.nodeID))
-
 
 #******************************************************************
 def node_back_online(node):
@@ -111,9 +112,10 @@ def sendNotifyEmail(inSubject, inDataDict, inTemplate):
      
       t = template.loader.get_template(inTemplate)
       body = t.render(inDataDict)
-      
+    
       msg = MIMEText(body, 'html') 
-      msg['From'] = Setting.objects.get(sKey="email_from_addr").sValue
+      msg['From'] = Setting.objects.get(sKey="email_acct").sValue
+  
       msg['To'] = Setting.objects.get(sKey="email_notify").sValue
       msg['Subject'] = inSubject
       
@@ -126,6 +128,34 @@ def sendNotifyEmail(inSubject, inDataDict, inTemplate):
        
     return
 
+def sendReport():
+  """
+  Function collates data and sends a full system report
+  """
+  print("Send full report")
+  allNodes = Node.objects.all()
+  batWarnList = []
+  batCritList=[]
+  nodeOKList = []
+  nodeDownList = []
+  for a in allNodes:
+    if a.status == 'C':
+      #print("Battery name is '{}'".format(a.battName))
+      if a.battName == None:
+        nodeOKList.append(a)
+      else:
+        if a.battLevel > a.battWarn:
+          nodeOKList.append(a)
+        elif a.battLevel > a.battCritical:
+          batWarnList.append(a)
+        else:
+          batCritList.append(a)
+    elif a.status == 'X':
+      nodeDownList.append(a)
+  cDict = {'nodes': allNodes, 'nodeOK': nodeOKList, 'nodeWarn': batWarnList, 'nodeCrit': batCritList, 'nodeDown': nodeDownList}
+  sendNotifyEmail("Daily report", cDict, "monitor/email-full.html")
+  print("Sent Daily email")
+  return
 
 #******************************************************************
 def mqtt_monitor():
@@ -147,10 +177,26 @@ def mqtt_monitor():
     #initialise the checkpoint timer
     checkTimer = timezone.now()
 
-    aNode = Node.objects.get(pk=10)
-    cDict = {'node': aNode}
-    sendNotifyEmail("Test email", cDict, "monitor/email-down.html")
-    print("Sent test email")
+    #aNode = Node.objects.get(pk=10)
+    #cDict = {'node': aNode}
+    #sendNotifyEmail("Test email", cDict, "monitor/email-down.html")
+    #print("Sent test email")
+
+    notification_data = {"LastSummary": datetime.datetime.now() + datetime.timedelta(days = -3)}
+
+    startTime = timezone.now()
+
+    #get any pickled notification data
+    try:
+        notificationPfile = open("notify.pkl", 'rb')
+        notification_data = pickle.load(notificationPfile)
+        print("Pickled notification read")
+        notificationPfile.close()
+    except:
+        print("Notification pickle file not found")
+        notification_data = {"LastSummary": datetime.datetime.now() + datetime.timedelta(days = -3)}
+
+    #sendReport()
 
     while True:
       time.sleep(1)
@@ -161,7 +207,7 @@ def mqtt_monitor():
         checkTimer = timezone.now()                                 #reset timer
         
         print("Timer check")
-
+          
         allNodes = Node.objects.all()
 
         for n in allNodes:
@@ -169,8 +215,25 @@ def mqtt_monitor():
             if (timezone.now() - n.lastseen) > datetime.timedelta(minutes=n.allowedDowntime):
                 print("Node {} not seen for over {} minutes".format(n, n.allowedDowntime))
                 missing_node(n)
-               
-
+            
+      if (timezone.now() - startTime) > datetime.timedelta(hours=1):    # this section is ony run if the script has been running for an hour
+        if (timezone.now().hour > 7):                                   # run at certain time of the day
+            xx = 1
+            print("Check 1 {}".format(notification_data["LastSummary"]))
+            if notification_data["LastSummary"].day != datetime.datetime.now().day:
+              print("Send 8am messages")
+              sendReport()
+              #update out notification data and save
+              notification_data["LastSummary"] = datetime.datetime.now()
+              #write a pickle containing current notification data
+              try:
+                  notificationPfile = open("notify.pkl", 'wb')
+                  pickle.dump(notification_data, notificationPfile)
+                  notificationPfile.close()
+              except:
+                  print("Notification Pickle failed")
+              
+ 
 
 #********************************************************************
 if __name__ == "__main__":
