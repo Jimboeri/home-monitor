@@ -128,6 +128,7 @@ def sendNotifyEmail(inSubject, inDataDict, inTemplate):
        
     return
 
+# ******************************************************************************
 def sendReport():
   """
   Function collates data and sends a full system report
@@ -140,7 +141,6 @@ def sendReport():
   nodeDownList = []
   for a in allNodes:
     if a.status == 'C':
-      #print("Battery name is '{}'".format(a.battName))
       if a.battName == None:
         nodeOKList.append(a)
       else:
@@ -153,7 +153,7 @@ def sendReport():
     elif a.status == 'X':
       nodeDownList.append(a)
   cDict = {'nodes': allNodes, 'nodeOK': nodeOKList, 'nodeWarn': batWarnList, 'nodeCrit': batCritList, 'nodeDown': nodeDownList}
-  sendNotifyEmail("Daily report", cDict, "monitor/email-full.html")
+  sendNotifyEmail("Home IoT report", cDict, "monitor/email-full.html")
   print("Sent Daily email")
   return
 
