@@ -22,6 +22,7 @@ class Node(models.Model):
   battMonitor = models.BooleanField(default=False)
   battWarn = models.FloatField(default=0.0, help_text = "Battery level at which to send warning messages")
   battCritical = models.FloatField(default=0.0, help_text = "Battery level at which to send critical messages")
+  battStatus = models.CharField(max_length=1, default=" ", help_text="'G' for good, 'W' for warning, 'C' for critically low, ' ' for not monitored")
   RSSI = models.FloatField(default=0.0, help_text = "Received Signal Strength Indicator")
   def __str__(self):
     return(self.nodeID)

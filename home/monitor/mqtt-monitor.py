@@ -73,6 +73,12 @@ def mqtt_on_message(client, userdata, msg):
       if nd.battName in jPayload:
         nd.battLevel = jPayload[nd.battName]
         nd.battMonitor = True
+        if nd.battLevel > nd.battWarn:
+          nd.battStatus = "G"
+        elif nd.battLevel > nd.battCritical:
+          nd.battStatus = "W"
+        else:
+          nd.battStatus = "C"
     if "RSSI" in jPayload:
       nd.RSSI = jPayload["RSSI"]
     nd.save()

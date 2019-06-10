@@ -23,7 +23,7 @@ services:
       context: .
       dockerfile: script-dockerfile
     environment:
-      MQTT_CLIENT_ID: mqtt_monitor_test
+      HOME_MQTT_CLIENT_ID: mqtt_monitor_test
     command: python mqtt-monitor.py
     volumes:
       - .:/code
