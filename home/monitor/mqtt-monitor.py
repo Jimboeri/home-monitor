@@ -20,10 +20,19 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "home.settings")
 django.setup()
 from monitor.models import Node, Setting
 
-cClient_ID = os.getenv('MQTT_CLIENT_ID', 'mqtt_monitor')
-print("MQTT client id is {}".format(cClient_ID))
+eMqtt_client_id = os.getenv("HOME_MQTT_CLIENT_ID", "mqtt_monitor")
+eMqtt_host = os.getenv("HOME_MQTT_HOST", "192.168.1.93")
+eMqtt_port = os.getenv("HOME_MQTT_PORT", "1883")
+eMqtt_user = os.getenv("HOME_MQTT_USER", "")
+eMqtt_password = os.getenv("HOME_MQTT_PASSWORD", "")
+eMail_From = os.getenv("HOME_MAIL_FROM", "auto@west.net.nz")
+
+eWeb_Base_URL = os.getenv("HOME_WEB_BASE_URL", "http://192.168.1.170:8000/admin")
+
+eMqtt_client_id = os.getenv('MQTT_CLIENT_ID', 'mqtt_monitor')
+print("MQTT client id is {}".format(eMqtt_client_id))
 #The mqtt client is initialised
-client = mqtt.Client(client_id='mqtt_monitor-d')
+client = mqtt.Client(client_id=eMqtt_client_id)
 
 # ********************************************************************
 def mqtt_on_connect(client, userdata, flags, rc):
