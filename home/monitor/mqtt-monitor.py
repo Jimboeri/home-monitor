@@ -217,7 +217,7 @@ def mqtt_monitor():
         print("Notification pickle file not found")
         notification_data = {"LastSummary": datetime.datetime.now() + datetime.timedelta(days = -3)}
 
-    sendReport()
+    #sendReport()
 
     while True:
       time.sleep(1)
