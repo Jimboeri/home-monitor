@@ -1,0 +1,20 @@
+{% extends "monitor/webbase.html" %}
+
+{% block title %}
+Node Update
+{% endblock %}
+
+{% block web-body %}
+  <div id="logged_on_user">
+    Logged in as {{ user.username }}
+  </div>
+  <div id="node_update_form">
+    <form action="{% url 'node_update' node.id %}" method="POST">
+      {% csrf_token %}
+      <table>
+        {{ form.as_table }}
+      </table>
+     <input type="submit" value="Update">
+    </form>
+  </div>
+{% endblock %}

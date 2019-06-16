@@ -53,6 +53,6 @@ Node down notification
     {% endif %}
   </table>
   <div class="mqtt_instructions">
-    <p>If node <span class="nodename"><a href="{% url 'node_detail' node.id %}">{{node.nodeID}}</a></span> is permamently down you can remove it from the system. </p>
+    <p>If node <span class="nodename"><a href="{{base_url}}{% url 'node_detail' node.id %}">{{node.nodeID}}</a></span> is permamently down you can remove it from the system. </p>
   </div>
 {% endblock %}

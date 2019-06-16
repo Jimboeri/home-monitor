@@ -5,7 +5,9 @@ Node Details
 {% endblock %}
 
 {% block web-body %}
-  <p>Logged in as {{ user.username }}</p>
+  <div id="logged_on_user">
+    Logged in as {{ user.username }}
+  </div>
   <p>This is the information currently held for <b>{{ node.nodeID }}</b></p>
     <table>
       <tr>
@@ -29,11 +31,7 @@ Node Details
       </tr>
     
     </table>
-  
-  <form action="{% url 'node_detail' node.id  %}" method="post">
-  {% csrf_token %}
-  <input type="hidden", name="newStatus", value="offline">
-  <input type="button", name="newStatus", value
-  <input type="submit" value="Change status">
-  </form>
+  <a href="{% url 'node_update' node.id %}" class="btn btn-info" role="button">Update details</a>
+  <button onclick="window.location.href = '{% url 'index' %}';">Main menu</button>
+
 {% endblock %}

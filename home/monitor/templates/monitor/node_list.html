@@ -1,9 +1,0 @@
-{% if node_list %}
-    <ul>
-    {% for node in node_list %}
-        <li><a href="/monitor/node/{{ node.id }}/">{{ node.NodeID }}</a></li>
-    {% endfor %}
-    </ul>
-{% else %}
-    <p>No nodes are available.</p>
-{% endif %}

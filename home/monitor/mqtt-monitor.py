@@ -27,7 +27,7 @@ eMqtt_user = os.getenv("HOME_MQTT_USER", "")
 eMqtt_password = os.getenv("HOME_MQTT_PASSWORD", "")
 eMail_From = os.getenv("HOME_MAIL_FROM", "auto@west.net.nz")
 
-eWeb_Base_URL = os.getenv("HOME_WEB_BASE_URL", "http://192.168.1.170:8000/admin")
+eWeb_Base_URL = os.getenv("HOME_WEB_BASE_URL", "http://192.168.1.170:8000/")
 
 eMqtt_client_id = os.getenv('MQTT_CLIENT_ID', 'mqtt_monitor')
 print("MQTT client id is {}".format(eMqtt_client_id))
@@ -111,7 +111,7 @@ def missing_node(node):
     node.notification_sent = True
     node.status_sent = timezone.make_aware(datetime.datetime.now(), timezone.get_current_timezone())
     node.save()
-    cDict = {'node': node}
+    cDict = {'node': node, 'base_url': eWeb_Base_URL}
     sendNotifyEmail("Node down notification for {}".format(node.nodeID), cDict, "monitor/email-down.html")
     print("Node {} marked as down and notification sent".format(node.nodeID))
   return
@@ -167,7 +167,9 @@ def sendReport():
           batCritList.append(a)
     elif a.status == 'X':
       nodeDownList.append(a)
-  cDict = {'nodes': allNodes, 'nodeOK': nodeOKList, 'nodeWarn': batWarnList, 'nodeCrit': batCritList, 'nodeDown': nodeDownList}
+  cDict = {'nodes': allNodes, 'nodeOK': nodeOKList, 'nodeWarn': batWarnList,
+      'nodeCrit': batCritList, 'nodeDown': nodeDownList,
+      'base_url': eWeb_Base_URL}
   sendNotifyEmail("Home IoT report", cDict, "monitor/email-full.html")
   print("Sent Daily email")
   return
@@ -211,7 +213,7 @@ def mqtt_monitor():
         print("Notification pickle file not found")
         notification_data = {"LastSummary": datetime.datetime.now() + datetime.timedelta(days = -3)}
 
-    #sendReport()
+    sendReport()
 
     while True:
       time.sleep(1)
@@ -232,7 +234,7 @@ def mqtt_monitor():
                 missing_node(n)
             
       if (timezone.now() - startTime) > datetime.timedelta(hours=1):    # this section is ony run if the script has been running for an hour
-        if (timezone.now().hour > 7):                                   # run at certain time of the day
+        if (timezone.now().hour > 1):                                   # run at certain time of the day
             xx = 1
             print("Check 1 {}".format(notification_data["LastSummary"]))
             if notification_data["LastSummary"].day != datetime.datetime.now().day:
