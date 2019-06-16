@@ -26,6 +26,10 @@ eMqtt_port = os.getenv("HOME_MQTT_PORT", "1883")
 eMqtt_user = os.getenv("HOME_MQTT_USER", "")
 eMqtt_password = os.getenv("HOME_MQTT_PASSWORD", "")
 eMail_From = os.getenv("HOME_MAIL_FROM", "auto@west.net.nz")
+eMail_To = os.getenv("HOME_MAIL_To", "jim@west.kiwi")
+eMail_Server = os.getenv("HOME_MAIL_SERVER", "smtp.gmail.com")
+eMail_Acct = os.getenv("HOME_MAIL_ACCT", "auto@west.net.nz")
+eMail_Password = os.getenv("HOME_MAIL_PASSWORD", "")
 
 eWeb_Base_URL = os.getenv("HOME_WEB_BASE_URL", "http://192.168.1.170:8000/")
 
@@ -122,19 +126,19 @@ def sendNotifyEmail(inSubject, inDataDict, inTemplate):
     """
     try:
      
-      email_server = smtplib.SMTP_SSL(Setting.objects.get(sKey="smtpserver").sValue, 465)
-      email_server.login(Setting.objects.get(sKey="email_acct").sValue, Setting.objects.get(sKey="email_passwd").sValue)
+      email_server = smtplib.SMTP_SSL(eMail_Server, 465)
+      email_server.login(eMail_Acct, eMail_Password)
      
       t = template.loader.get_template(inTemplate)
       body = t.render(inDataDict)
     
       msg = MIMEText(body, 'html') 
-      msg['From'] = Setting.objects.get(sKey="email_acct").sValue
+      msg['From'] = eMail_From
   
-      msg['To'] = Setting.objects.get(sKey="email_notify").sValue
+      msg['To'] = eMail_To
       msg['Subject'] = inSubject
       
-      email_server.sendmail(Setting.objects.get(sKey="email_from_addr").sValue, Setting.objects.get(sKey="email_notify").sValue, msg.as_string())
+      email_server.sendmail(eMail_From, eMail_To, msg.as_string())
       email_server.close()
     except Exception as e:
         print(e)
