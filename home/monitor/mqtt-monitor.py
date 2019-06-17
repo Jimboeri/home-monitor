@@ -238,7 +238,7 @@ def mqtt_monitor():
                 missing_node(n)
             
       if (timezone.now() - startTime) > datetime.timedelta(hours=1):    # this section is ony run if the script has been running for an hour
-        if (timezone.now().hour > 1):                                   # run at certain time of the day
+        if (timezone.now().hour > 7):                                   # run at certain time of the day
             xx = 1
             print("Check 1 {}".format(notification_data["LastSummary"]))
             if notification_data["LastSummary"].day != datetime.datetime.now().day:
