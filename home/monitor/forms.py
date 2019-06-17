@@ -7,7 +7,7 @@ from .models import Node
 class NodeUpdateModelForm(forms.ModelForm):
     class Meta:
         model = Node
-        fields = (['descr', 'battName', 'topic', 'status', 'allowedDowntime'])
+        fields = (['descr', 'topic', 'status', 'allowedDowntime', 'battName', 'battWarn', 'battCritical'])
         widgets = {
             'descr': forms.Textarea(attrs={'rows': 3}),
         }

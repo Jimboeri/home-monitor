@@ -18,7 +18,7 @@ Node Details
       </tr>
 
       <tr>
-        <td>Current status:</td><td> {{ node.status }}</td>
+        <td>Current status:</td><td> {{ node.textStatus }}</td>
       </tr>
       <tr>
         <td>Specific node topic:</td><td>{{ node.topic }}</td>
@@ -29,7 +29,31 @@ Node Details
       <tr>
         <td>Last data:</td><td>{{ node.lastData }}</td>
       </tr>
-    
+      <tr>
+        <td>Minutes down time allowed:</td><td>{{ node.allowedDowntime }}</td>
+      </tr>
+      <tr>
+        <td>Signal strength:</td><td>{{ node.RSSI }}</td>
+      </tr>
+      {% if node.battName %}
+      <tr>
+        <th>Battery details:</th>
+      </tr>
+
+        <tr>
+          <td>Battery name:</td><td>{{ node.battName }}</td>
+        </tr>
+        <tr>
+          <td>Last battery level:</td><td>{{ node.battLevel }}</td>
+        </tr>
+        <tr>
+          <td>Warning battery level:</td><td>{{ node.battWarn }}</td>
+        </tr>
+        <tr>
+          <td>Critical battery level:</td><td>{{ node.battCritical }}</td>
+        </tr>
+
+      {% endif %}
     </table>
   <a href="{% url 'node_update' node.id %}" class="btn btn-info" role="button">Update details</a>
   <button onclick="window.location.href = '{% url 'index' %}';">Main menu</button>
