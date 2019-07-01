@@ -66,13 +66,12 @@ def mqtt_on_message(client, userdata, msg):
       if sPayload == "Offline":
         nd.textSstatus = sPayload
         nd.status = "X"
-      else:
-      
+      else:    
         if nd.status == "X":
           node_back_online(nd)
-        nd.lastseen = timezone.make_aware(datetime.datetime.now(), timezone.get_current_timezone())
-        nd.textSstatus = "Online"
-        nd.status = "C"
+    nd.lastseen = timezone.make_aware(datetime.datetime.now(), timezone.get_current_timezone())
+    nd.textSstatus = "Online"
+    nd.status = "C"
     nd.lastData = sPayload
     if nd.battName:
       #print("Battery name is {}".format(nd.battName))
