@@ -55,11 +55,11 @@ def mqtt_on_message(client, userdata, msg):
   
   sPayload = msg.payload.decode()
   jPayload = json.loads(msg.payload)
-  print(msg.topic)
-  print(jPayload)
+  #print(msg.topic)
+  #print(jPayload)
   cTopic = msg.topic.split("/")
   cNodeID = cTopic[1]
-  print(cNodeID)
+  #print(cNodeID)
   try:
     nd, created = Node.objects.get_or_create(nodeID = cNodeID)
     if nd.status != "M":
@@ -68,7 +68,7 @@ def mqtt_on_message(client, userdata, msg):
         nd.status = "X"
       else:    
         if nd.status == "X":
-          node_back_online(nd)
+          nGode_back_online(nd)
     nd.lastseen = timezone.make_aware(datetime.datetime.now(), timezone.get_current_timezone())
     nd.textSstatus = "Online"
     nd.status = "C"
