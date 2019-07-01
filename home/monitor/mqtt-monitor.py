@@ -55,9 +55,11 @@ def mqtt_on_message(client, userdata, msg):
   
   sPayload = msg.payload.decode()
   jPayload = json.loads(msg.payload)
+  print(msg.topic)
   print(jPayload)
   cTopic = msg.topic.split("/")
   cNodeID = cTopic[1]
+  print(cNodeID)
   try:
     nd, created = Node.objects.get_or_create(nodeID = cNodeID)
     if nd.status != "M":
