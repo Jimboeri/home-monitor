@@ -55,7 +55,7 @@ def mqtt_on_message(client, userdata, msg):
   
   sPayload = msg.payload.decode()
   jPayload = json.loads(msg.payload)
-  #print(jPayload)
+  print(jPayload)
   cTopic = msg.topic.split("/")
   cNodeID = cTopic[1]
   try:
@@ -237,10 +237,10 @@ def mqtt_monitor():
                 print("Node {} not seen for over {} minutes".format(n, n.allowedDowntime))
                 missing_node(n)
             
-      if (timezone.now() - startTime) > datetime.timedelta(hours=1):    # this section is ony run if the script has been running for an hour
-        if (timezone.now().hour > 7):                                   # run at certain time of the day
+        if (timezone.now() - startTime) > datetime.timedelta(hours=1):    # this section is ony run if the script has been running for an hour
+          if (timezone.now().hour > 7):                                   # run at certain time of the day
             xx = 1
-            print("Check 1 {}".format(notification_data["LastSummary"]))
+            #print("Check 1 {}".format(notification_data["LastSummary"]))
             if notification_data["LastSummary"].day != datetime.datetime.now().day:
               print("Send 8am messages")
               sendReport()
