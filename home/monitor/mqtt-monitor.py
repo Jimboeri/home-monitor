@@ -21,7 +21,7 @@ django.setup()
 from monitor.models import Node, Setting
 
 eMqtt_client_id = os.getenv("HOME_MQTT_CLIENT_ID", "mqtt_monitor")
-eMqtt_host = os.getenv("HOME_MQTT_HOST", "192.168.1.93")
+eMqtt_host = os.getenv("HOME_MQTT_HOST", "192.168.3.93")
 eMqtt_port = os.getenv("HOME_MQTT_PORT", "1883")
 eMqtt_user = os.getenv("HOME_MQTT_USER", "")
 eMqtt_password = os.getenv("HOME_MQTT_PASSWORD", "")
@@ -31,9 +31,9 @@ eMail_Server = os.getenv("HOME_MAIL_SERVER", "smtp.gmail.com")
 eMail_Acct = os.getenv("HOME_MAIL_ACCT", "auto@west.net.nz")
 eMail_Password = os.getenv("HOME_MAIL_PASSWORD", "")
 
-eWeb_Base_URL = os.getenv("HOME_WEB_BASE_URL", "http://192.168.1.170:8000/")
+eWeb_Base_URL = os.getenv("HOME_WEB_BASE_URL", "http://192.168.3.3:8000/")
 
-eMqtt_client_id = os.getenv('MQTT_CLIENT_ID', 'mqtt_monitor')
+#eMqtt_client_id = os.getenv('MQTT_CLIENT_ID', 'mqtt_monitor')
 print("MQTT client id is {}".format(eMqtt_client_id))
 #The mqtt client is initialised
 client = mqtt.Client(client_id=eMqtt_client_id)
@@ -59,7 +59,7 @@ def mqtt_on_message(client, userdata, msg):
   #print(jPayload)
   cTopic = msg.topic.split("/")
   cNodeID = cTopic[1]
-  #print(cNodeID)
+  print(cNodeID)
   try:
     nd, created = Node.objects.get_or_create(nodeID = cNodeID)
     if nd.status != "M":
@@ -68,7 +68,7 @@ def mqtt_on_message(client, userdata, msg):
         nd.status = "X"
       else:    
         if nd.status == "X":
-          nGode_back_online(nd)
+          node_back_online(nd)
     nd.lastseen = timezone.make_aware(datetime.datetime.now(), timezone.get_current_timezone())
     nd.textSstatus = "Online"
     nd.status = "C"
