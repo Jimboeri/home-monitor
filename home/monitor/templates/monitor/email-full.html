@@ -61,8 +61,7 @@ Node down notification
         <p>Nodes that are fine are:</p>
         <ul id = "nodeOK">
         {% for entry in nodeOK %}
-          <li><span class="nodeup"><a href="{{base_url}}{% url 'node_detail' entryxit
-            .id %}">{{entry.nodeID}}</a></span> <span class="lastseen">(last seen {{entry.lastseen}})</span>
+          <li><span class="nodeup"><a href="{{base_url}}{% url 'node_detail' entry.id %}">{{entry.nodeID}}</a></span> <span class="lastseen">(last seen {{entry.lastseen}})</span>
             {% if entry.descr %}
               <br><span class="descr">{{ entry.descr }}</span>
             {% endif %}
