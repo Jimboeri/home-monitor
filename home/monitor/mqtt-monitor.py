@@ -190,8 +190,8 @@ def mqtt_monitor():
     client.on_message = mqtt_on_message
     
     # set up the local MQTT environment
-    #client.username_pw_set(config["General"]["mqttuser"],
-    #      config["General"]["mqttpw"])
+    client.username_pw_set(eMqtt_user,
+          eMqtt_password)
     client.connect(eMqtt_host)
 
     # used to manage mqtt subscriptions
