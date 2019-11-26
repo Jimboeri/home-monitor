@@ -36,7 +36,8 @@ eWeb_Base_URL = os.getenv("HOME_WEB_BASE_URL", "http://monitor.west.net.nz")
 #eMqtt_client_id = os.getenv('MQTT_CLIENT_ID', 'mqtt_monitor')
 print("MQTT client id is {}".format(eMqtt_client_id))
 #The mqtt client is initialised
-client = mqtt.Client(client_id=eMqtt_client_id)
+#client = mqtt.Client(client_id=eMqtt_client_id)
+client = mqtt.Client()
 
 # ********************************************************************
 def mqtt_on_connect(client, userdata, flags, rc):
