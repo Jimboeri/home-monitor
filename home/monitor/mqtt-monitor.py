@@ -61,12 +61,14 @@ def mqtt_on_message(client, userdata, msg):
     """This procedure is called each time a mqtt message is received"""
 
     sPayload = msg.payload.decode()
-    jPayload = json.loads(msg.payload)
-    # print(msg.topic)
-    # print(jPayload)
+    jPayload = []
+    if is_json(msg.payload):
+        jPayload = json.loads(msg.payload)
     cTopic = msg.topic.split("/")
     cNodeID = cTopic[1]
     print(cNodeID)
+    #print(f"Payload is {jPayload}")
+    #print(f"Topic is {msg.topic}")
     try:
         nd, created = Node.objects.get_or_create(nodeID=cNodeID)
         if nd.status != "M":
@@ -83,7 +85,7 @@ def mqtt_on_message(client, userdata, msg):
         nd.status = "C"
         nd.lastData = sPayload
         if nd.battName:
-            # print("Battery name is {}".format(nd.battName))
+            print("Battery name is {}".format(nd.battName))
             if nd.battName in jPayload:
                 nd.battLevel = jPayload[nd.battName]
                 nd.battMonitor = True
@@ -96,6 +98,7 @@ def mqtt_on_message(client, userdata, msg):
         if "RSSI" in jPayload:
             nd.RSSI = jPayload["RSSI"]
         nd.save()
+
     except Exception as e:
         print(e)
     if created:
@@ -202,6 +205,18 @@ def sendReport():
     sendNotifyEmail("Home IoT report", cDict, "monitor/email-full.html")
     print("Sent Daily email")
     return
+
+
+# ********************************************************************
+def is_json(myjson):
+    """
+    Function to check if an input is a valid JSON message
+    """
+    try:
+        json_object = json.loads(myjson)
+    except ValueError as e:
+        return False
+    return True
 
 
 # ******************************************************************
