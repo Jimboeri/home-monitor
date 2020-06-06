@@ -9,12 +9,29 @@ Node List
 {% block web-body %}
     <h1>Node List</h1>
     <div id="devices">
+      {% if offlineNodes %}
+        <div id="offlineNodes" class="devices">
+          <p>Offline nodes</p>
+          <ul id='nodeoffline'>
+            {% for node in offlineNodes %}
+              <li><a href="{% url 'node_detail' node.id %}">{{node.nodeID}}</a> 
+                {% if node.descr %} ({{node.descr}}) {% endif %}
+                {% if node.battStatus == "W" %} Battery may be flat ({{node.battLevel}} {{node.battName}})
+                {% elif node.battStatus == "C" %} Battery may be flat ({{node.battLevel}} {{node.battName}})
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
       <div id="onlineNodes" class="devices">
         {% if onlineNodes %}
           <p>Online nodes</p>
           <ul id='nodeonline'>
             {% for node in onlineNodes %}
                 <li><a href="{% url 'node_detail' node.id %}">{{node.nodeID}}</a>
+                  {% if node.descr %} ({{node.descr}}) {% endif %}
                   {% if node.battStatus == "W" %} Battery warning ({{node.battLevel}} {{node.battName}})
                   {% elif node.battStatus == "C" %} Critical Battery warning ({{node.battLevel}} {{node.battName}})
                   {% endif %}
@@ -26,19 +43,5 @@ Node List
         {% endif %}
     </div>
     
-    {% if offlineNodes %}
-      <div id="offlineNodes" class="devices">
-          <p>Offline nodes</p>
-          <ul id='nodeoffline'>
-            {% for node in offlineNodes %}
-                <li><a href="{% url 'node_detail' node.id %}">{{node.nodeID}}</a>
-                  {% if node.battStatus == "W" %} Battery may be flat ({{node.battLevel}} {{node.battName}})
-                  {% elif node.battStatus == "C" %} Battery may be flat ({{node.battLevel}} {{node.battName}})
-                  {% endif %}
-                </li>
-            {% endfor %}
-            </ul>
-        </div>
-     {% endif %}
   </div>
 {% endblock %}
