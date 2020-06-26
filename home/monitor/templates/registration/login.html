@@ -1,0 +1,34 @@
+{% extends "monitor/webbase.html" %}
+
+{% block title %}
+Login page
+{% endblock %}
+
+{% block web-body %}
+    <div id="content-main" class="content_block">
+        <form action="/admin/login/" method="post" id="login-form">
+            {% csrf_token %}
+            <table>
+                <div class="form-row">
+                  <tr>
+                    <td><label class="required" for="id_username">Username:</label></td>
+                    <td><input type="text" name="username" autofocus="" required="" id="id_username"></td>
+                 </tr>
+                </div>
+               
+                <div class="form-row">
+                    <tr>
+                        <td><label class="required" for="id_password">Password:</label>
+                        <td> <input type="password" name="password" required="" id="id_password"> <input type="hidden" name="next" value="{{ next }}"></td>
+                    </tr>
+                </div>      
+                <div class="submit-row">
+                    <tr>
+                        <td></td>
+                        <td><input type="submit" value="Log in"></td>
+                    </tr>
+                </div>
+            </table>
+        </form>        
+    </div>
+ {% endblock %}

@@ -14,7 +14,7 @@ Node List
           <p>Offline nodes</p>
           <ul id='nodeoffline'>
             {% for node in offlineNodes %}
-              <li><a href="{% url 'node_detail' node.id %}">{{node.nodeID}}</a> 
+              <li><a href="{% url 'monitor:node_detail' node.id %}">{{node.nodeID}}</a> 
                 {% if node.descr %} ({{node.descr}}) {% endif %}
                 {% if node.battStatus == "W" %} Battery may be flat ({{node.battLevel}} {{node.battName}})
                 {% elif node.battStatus == "C" %} Battery may be flat ({{node.battLevel}} {{node.battName}})
@@ -30,7 +30,7 @@ Node List
           <p>Online nodes</p>
           <ul id='nodeonline'>
             {% for node in onlineNodes %}
-                <li><a href="{% url 'node_detail' node.id %}">{{node.nodeID}}</a>
+                <li><a href="{% url 'monitor:node_detail' node.id %}">{{node.nodeID}}</a>
                   {% if node.descr %} ({{node.descr}}) {% endif %}
                   {% if node.battStatus == "W" %} Battery warning ({{node.battLevel}} {{node.battName}})
                   {% elif node.battStatus == "C" %} Critical Battery warning ({{node.battLevel}} {{node.battName}})

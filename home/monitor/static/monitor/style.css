@@ -3,23 +3,34 @@ body {
   background: white url("images/iot2.png") no-repeat;
 }
 
+.nodeup {
+  color: #0b772f; 
+  font-weight: bold;
+}
+
+.wrap_cell {
+  width: 50%;
+}
+
+.info_cell {
+  width: auto;
+}
+
+/*
 .node_down {
   color: red;
   font-weight: bold;
 }
-
-.nodeup {
-  color: #0b772f; /*medium green */
-  font-weight: bold;
+.descr {
+  font-style: italic;
+  width: 50%;
 }
+
 
 .lastseen {
   font-style: italic;
 }
 
-.descr {
-  font-style: italic;
-}
 
 .topic {
   font-family: Monospace;
@@ -27,8 +38,8 @@ body {
 }
 
 .payload {
-  color: #0b772f; /*medium green */
-/*     font-weight: bold;  */
+  color: #0b772f; 
+  font-weight: bold;
 }
 
 .nodename {
@@ -47,7 +58,7 @@ table.node-details {
 td.node-details {
   border: 1px solid black;
 }
-
+*/
 
 /* -------------------------------------
     HEADER, FOOTER, MAIN

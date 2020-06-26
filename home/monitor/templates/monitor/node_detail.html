@@ -8,54 +8,31 @@ Node Details
   <div id="logged_on_user">
     Logged in as {{ user.username }}
   </div>
-  <p>This is the information currently held for <b>{{ node.nodeID }}</b></p>
+  <div id="node-header"><h2>Information currently held for <b>{{ node.nodeID }}</b></h2></div>
     <table>
-      <tr>
-        <td>Node ID:</td><td><span class="nodeup">{{ node.nodeID }}</span></td>
-      </tr>
-      <tr>
-        <td>Description:</td><td> {{ node.descr }}</td>
-      </tr>
-
-      <tr>
-        <td>Current status:</td><td> {{ node.textStatus }}</td>
-      </tr>
-      <tr>
-        <td>Specific node topic:</td><td>{{ node.topic }}</td>
-      </tr>
-      <tr>
-        <td>Last seen at:</td><td>{{ node.lastseen }}</td>
-      </tr>
-      <tr>
-        <td>Last data:</td><td>{{ node.lastData }}</td>
-      </tr>
-      <tr>
-        <td>Minutes down time allowed:</td><td>{{ node.allowedDowntime }}</td>
-      </tr>
-      <tr>
-        <td>Signal strength:</td><td>{{ node.RSSI }}</td>
-      </tr>
+      <tr><th>Node ID:</th>                   <th>{{ node.nodeID }}</th></tr>
+      <tr><td>Description:</td>               <td>{{ node.descr }}</td></tr>
+      <tr><td>Current status:</td>            <td>{{ node.textStatus }}</td></tr>
+      <tr><td>Specific node topic:</td>       <td>{{ node.topic }}</td></tr>
+      <tr><td>Last seen at:</td>              <td>{{ node.lastseen }}</td></tr>
+      <tr><td>Last data:</td>                 <td>{{ node.lastData }}</td></tr>
+      <tr><td>Minutes down time allowed:</td> <td>{{ node.allowedDowntime }}</td></tr>
+      <tr><td>Signal strength:</td>           <td>{{ node.RSSI }}</td></tr>
       {% if node.battName %}
-      <tr>
-        <th>Battery details:</th>
-      </tr>
-
-        <tr>
-          <td>Battery name:</td><td>{{ node.battName }}</td>
-        </tr>
-        <tr>
-          <td>Last battery level:</td><td>{{ node.battLevel }}</td>
-        </tr>
-        <tr>
-          <td>Warning battery level:</td><td>{{ node.battWarn }}</td>
-        </tr>
-        <tr>
-          <td>Critical battery level:</td><td>{{ node.battCritical }}</td>
-        </tr>
-
+        <tr><th>Battery details:</th></tr>
+        <tr><td>Battery name:</td>            <td>{{ node.battName }}</td></tr>
+        <tr><td>Last battery level:</td>      <td>{{ node.battLevel }}</td></tr>
+        <tr><td>Warning battery level:</td>   <td>{{ node.battWarn }}</td></tr>
+        <tr><td>Critical battery level:</td>  <td>{{ node.battCritical }}</td></tr>
       {% endif %}
+      {% if node.status == 'X' %}
+        <div id="node_det_button" class="action_button">
+          <a href="{% url 'monitor:node_remove' node.id %}" class="btn btn-danger" role="button">Remove</a>
+        </div>
+      {% endif %}
+
     </table>
-  <a href="{% url 'node_update' node.id %}" class="btn btn-info" role="button">Update details</a>
-  <button onclick="window.location.href = '{% url 'index' %}';">Main menu</button>
+  <a href="{% url 'monitor:node_update' node.id %}" class="btn btn-info" role="button">Update details</a>
+  <button onclick="window.location.href = '{% url 'monitor:index' %}';">Main menu</button>
 
 {% endblock %}

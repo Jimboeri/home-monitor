@@ -61,46 +61,48 @@ def mqtt_on_message(client, userdata, msg):
     """This procedure is called each time a mqtt message is received"""
 
     sPayload = msg.payload.decode()
-    jPayload = []
+    jPayload = {}
     if is_json(msg.payload):
         jPayload = json.loads(msg.payload)
     cTopic = msg.topic.split("/")
     cNodeID = cTopic[1]
     print(cNodeID)
-    #print(f"Payload is {jPayload}")
-    #print(f"Topic is {msg.topic}")
+    print(f"Payload is {jPayload}")
+    print(f"Topic is {msg.topic}")
     try:
         nd, created = Node.objects.get_or_create(nodeID=cNodeID)
-        if nd.status != "M":
-            if sPayload == "Offline":
-                nd.textSstatus = sPayload
-                nd.status = "X"
-            else:
-                if nd.status == "X":
-                    node_back_online(nd)
-        nd.lastseen = timezone.make_aware(
-            datetime.datetime.now(), timezone.get_current_timezone()
-        )
-        nd.textSstatus = "Online"
-        nd.status = "C"
-        nd.lastData = sPayload
-        if nd.battName:
-            print("Battery name is {}".format(nd.battName))
-            if nd.battName in jPayload:
-                nd.battLevel = jPayload[nd.battName]
-                nd.battMonitor = True
-                if nd.battLevel > nd.battWarn:
-                    nd.battStatus = "G"
-                elif nd.battLevel > nd.battCritical:
-                    nd.battStatus = "W"
-                else:
-                    nd.battStatus = "C"
-        if "RSSI" in jPayload:
-            nd.RSSI = jPayload["RSSI"]
-        nd.save()
-
     except Exception as e:
         print(e)
+        return
+
+    if nd.status != "M":
+        if sPayload == "Offline":
+            nd.textSstatus = sPayload
+            nd.status = "X"
+        else:
+            if nd.status == "X":
+                node_back_online(nd)
+    nd.lastseen = timezone.make_aware(
+        datetime.datetime.now(), timezone.get_current_timezone()
+    )
+    nd.textSstatus = "Online"
+    nd.status = "C"
+    nd.lastData = sPayload.replace('","', '", "')
+    if nd.battName:
+        print("Battery name is {}".format(nd.battName))
+        if nd.battName in jPayload:
+            nd.battLevel = jPayload[nd.battName]
+            nd.battMonitor = True
+            if nd.battLevel > nd.battWarn:
+                nd.battStatus = "G"
+            elif nd.battLevel > nd.battCritical:
+                nd.battStatus = "W"
+            else:
+                nd.battStatus = "C"
+    if "RSSI" in jPayload:
+        nd.RSSI = jPayload["RSSI"]
+    nd.save()
+
     if created:
         print("Node {} has been created".format(nd.nodeID))
     else:

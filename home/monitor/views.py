@@ -4,12 +4,14 @@ from django.template import loader
 from django.contrib.auth.models import User
 from django.views import generic
 from django.urls import reverse
+from django.contrib.auth.decorators import login_required
 
 from .models import Node
 
 from .forms import NodeUpdateModelForm
 
 # Create your views here.
+# *****************************************************************************
 def node_list(request):
     """ ."""
     node_list = Node.objects.all()
@@ -18,7 +20,7 @@ def node_list(request):
     }
     return render(request, "monitor/node_list.html", context)
 
-
+# *****************************************************************************
 def index(request):
     nodeList = Node.objects.order_by("nodeID")
     onlineNodes = nodeList.filter(status__startswith="C")
@@ -48,6 +50,7 @@ def node_detail(request, node_id):
 
 
 # *****************************************************************************
+@login_required
 def node_update(request, node_id):
     # print("Enter node_update")
     # print(request.POST)
@@ -71,3 +74,21 @@ def node_update(request, node_id):
 
     context = {"form": form, "node": node}
     return render(request, "monitor/node_update.html", context)
+
+# *****************************************************************************
+@login_required
+def node_remove(request, node_ref):
+    node = get_object_or_404(Node, pk=node_ref)
+    if request.method == "POST":
+        removeMe = "N"
+        try:
+            removeMe = request.POST["remove"]
+        except:
+            return HttpResponseRedirect(reverse("monitor:node_detail", args=[node.id]))
+        if removeMe == "Y":
+            node.status = "M"
+            node.save()
+            return HttpResponseRedirect(reverse("monitor:index"))
+    context = {"node": node}
+
+    return render(request, "monitor/node_remove.html", context)

@@ -10,7 +10,7 @@ Node Update
   </div>
   <div id="node_update_form">
     <p>Editing information for <b>{{ node.nodeID }}</b></p>
-    <form action="{% url 'node_update' node.id %}" method="POST">
+    <form action="{% url 'monitor:node_update' node.id %}" method="POST">
       {% csrf_token %}
       <table>
         {{ form.as_table }}
