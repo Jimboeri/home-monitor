@@ -20,7 +20,7 @@ from email.mime.text import MIMEText
 sys.path.append("/code/home")
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "home.settings")
 django.setup()
-from monitor.models import Node, Setting
+from monitor.models import Node, Setting, HassDomain, Entity
 
 eMqtt_client_id = os.getenv("HOME_MQTT_CLIENT_ID", "mqtt_monitor")
 eMqtt_host = os.getenv("HOME_MQTT_HOST", "mqtt.west.net.nz")
@@ -42,17 +42,31 @@ print("MQTT client id is {}".format(eMqtt_client_id))
 client = mqtt.Client()
 
 # ********************************************************************
+def is_json(myjson):
+    """
+    Function to check if an input is a valid JSON message
+    """
+    try:
+        json_object = json.loads(myjson)
+    except ValueError as e:
+        return False
+    return True
+
+
+# ********************************************************************
 def mqtt_on_connect(client, userdata, flags, rc):
     """
       This procedure is called on connection to the mqtt broker
     """
-    Topics = ["house", "zigbee2mqtt", "shellies"]
+    Topics = ["house", "zigbee2mqtt", "shellies", "homeassistant"]
 
-    print("mqtt conn entered")
+    print("MQTT conn entered")
     for topic in Topics:
         cTop = topic + "/#"
         client.subscribe(cTop)
         print(f"Subscribed to {cTop}")
+    
+    print("MQTTConn finished")
     return
 
 
@@ -61,14 +75,38 @@ def mqtt_on_message(client, userdata, msg):
     """This procedure is called each time a mqtt message is received"""
 
     sPayload = msg.payload.decode()
-    jPayload = {}
-    if is_json(msg.payload):
-        jPayload = json.loads(msg.payload)
+    
     cTopic = msg.topic.split("/")
+    #print(cTopic)
+
+    # Processing varies depending on the topic
+
+    if cTopic[0] == "homeassistant":    # This is a topic used for zigbee2mqtt discovery messages
+        hassDiscovery(client, userdata, msg)
+        return  
+    
+    if cTopic[0] == "tasmota":    # This is a topic used for Tasmota discovery messages
+        tasmotaDiscovery(client, userdata, msg)
+        return
+
+    if cTopic[0] == "zigbee2mqtt":    # This is a topic used for zigbee2mqtt Data messages
+        zigbee2mqttData(client, userdata, msg)
+        return
+
+    if cTopic[0] == "shellies":    # This is a topic used for shellies discovery & data messages
+        shellies(client, userdata, msg)
+        return
+
+    jPayload = {}
+    if is_json(sPayload):
+        jPayload = json.loads(sPayload)
+        #print(f"on_msg, JSON check: Input: {sPayload}, output: {jPayload}, passed as valid")
+
+
     cNodeID = cTopic[1]
-    print(cNodeID)
-    print(f"Payload is {jPayload}")
-    print(f"Topic is {msg.topic}")
+    print(f"NodeID: {cNodeID}")
+    #print(f"JSON Payload is {jPayload}")
+    
     try:
         nd, created = Node.objects.get_or_create(nodeID=cNodeID)
     except Exception as e:
@@ -82,9 +120,7 @@ def mqtt_on_message(client, userdata, msg):
         else:
             if nd.status == "X":
                 node_back_online(nd)
-    nd.lastseen = timezone.make_aware(
-        datetime.datetime.now(), timezone.get_current_timezone()
-    )
+    nd.lastseen = timezone.now()
     nd.textSstatus = "Online"
     nd.status = "C"
     nd.lastData = sPayload.replace('","', '", "')
@@ -100,13 +136,145 @@ def mqtt_on_message(client, userdata, msg):
             else:
                 nd.battStatus = "C"
     if "RSSI" in jPayload:
-        nd.RSSI = jPayload["RSSI"]
+        print(f"RSSI: {jPayload}")
+        nd.RSSI = float(jPayload["RSSI"])
+
     nd.save()
 
     if created:
         print("Node {} has been created".format(nd.nodeID))
     else:
         print("Node {} has been updated".format(nd.nodeID))
+
+# ********************************************************************
+def hassDiscovery(client, userdata, msg):
+    """
+    """
+    
+    sPayload = msg.payload.decode()
+    print(f"Process Home assistant discovery, topic: {msg.topic}, payload: {sPayload}")
+    cTopic = msg.topic.split("/")
+    if len(cTopic) < 3:
+        print(f"Homeassistant error in discovery topic: {msg.topic}")
+        return
+    try:
+        domain, created = HassDomain.objects.get_or_create(name=cTopic[1])
+    except Exception as e:
+        print(e)
+        return
+
+    if is_json(sPayload):
+        jPayload = json.loads(sPayload)
+        if "device" in jPayload:
+            if "name" in jPayload["device"]:
+                cNode = jPayload["device"]["name"]
+                node, created = Node.objects.get_or_create(nodeID = cNode)
+
+                if "model" in jPayload["device"]:
+                    node.model= jPayload["device"]["model"]
+
+                node.save()
+
+                if "unique_id" in jPayload:
+                    entity, eCreated = Entity.objects.get_or_create(entityID = jPayload["unique_id"], node = node, domain = domain)
+
+                    if "state_topic" in jPayload:
+                        entity.state_topic = jPayload["state_topic"]
+                    if "availability_topic" in jPayload:
+                        entity.availability_topic = jPayload["availability_topic"]
+                    entity.save()
+
+    return
+
+# ********************************************************************
+def tasmotaDiscovery(client, userdata, msg):
+    """
+    """
+    return
+
+# ********************************************************************
+def zigbee2mqttData(client, userdata, msg):
+    """
+    """
+    sPayload = msg.payload.decode()
+    
+    cTopic = msg.topic.split("/")
+    cNode = cTopic[1]
+
+    node, created = Node.objects.get_or_create(nodeID = cNode)
+    node.lastData = sPayload
+    node.lastseen = timezone.now()
+
+    if is_json(sPayload):
+        jPayload = json.loads(sPayload)
+        if "battery" in jPayload:
+            node.battLevel = jPayload["battery"]
+            node.battWarn = 60
+            node.battCritical = 50
+            if node.battLevel > node.battWarn:
+                node.battStatus = "G"
+            elif node.battLevel > node.battCritical:
+                node.battStatus = "W"
+            else:
+                node.battStatus = "C"
+        if "voltage" in jPayload:
+            node.battVoltage = jPayload["voltage"] / 1000
+        if "linkquality" in jPayload:
+            node.linkQuality = jPayload["linkquality"]
+
+    node.online()
+    node.save()
+    print(f"Node {node.nodeID} has been updated in zigbee2mqttData")
+
+    return
+
+# ********************************************************************
+def shellies(client, userdata, msg):
+    """
+    """
+    sPayload = msg.payload.decode()
+    
+    cTopic = msg.topic.split("/")
+    cNode = cTopic[1]
+
+    jPayload = {}
+    if is_json(sPayload):
+        jPayload = json.loads(sPayload)
+
+    if cTopic[1] == "announce":
+        if "id" in jPayload:
+            node, created = Node.objects.get_or_create(nodeID = jPayload["id"])
+            if "model" in jPayload:
+                node.model = jPayload["model"]
+            if "mac" in jPayload:
+                node.macAddr = jPayload["mac"]
+            if "ip" in jPayload:
+                node.ipAddr = jPayload["ip"]
+            node.online()
+            node.save()
+            return
+
+    node, created = Node.objects.get_or_create(nodeID = cNode)
+
+    if len(cTopic) == 3:
+        if cTopic[2] == "online" and sPayload == "false":
+            node.status = 'X'
+            node.textStatus = "Missing"
+            node.save()
+            return
+        if cTopic[2] == "announce":
+            if "model" in jPayload:
+                node.model = jPayload["model"]
+            if "mac" in jPayload:
+                node.macAddr = jPayload["mac"]
+            if "ip" in jPayload:
+                node.ipAddr = jPayload["ip"]
+    
+    node.online()
+    node.save()
+    print(f"Node {node.nodeID} has been updated in shellies")
+
+    return
 
 
 # ******************************************************************
@@ -214,10 +382,19 @@ def is_json(myjson):
     """
     Function to check if an input is a valid JSON message
     """
+    if not isinstance(myjson, (str)):
+        return False
+    #print(f"'is_json' Input is {myjson}")
     try:
         json_object = json.loads(myjson)
     except ValueError as e:
+        #print(f"'is_json' NOT valid JSON")
         return False
+    if not isinstance(json_object, (dict)):
+        #print(f"'is_json' Output not dict")
+        return False
+
+    #print(f"'is_json' valid JSON, Output is {json_object}, type is: {type(json_object)}")
     return True
 
 
@@ -245,25 +422,16 @@ def mqtt_monitor():
     # sendNotifyEmail("Test email", cDict, "monitor/email-down.html")
     # print("Sent test email")
 
+    conf, created = Setting.objects.get_or_create(sKey="LastSummary")
+    if created:
+        conf.dValue = timezone.now() + datetime.timedelta(days=-3)
+        conf.save()
+
     notification_data = {
-        "LastSummary": datetime.datetime.now() + datetime.timedelta(days=-3)
+        "LastSummary":conf.dValue,
     }
 
     startTime = timezone.now()
-
-    # get any pickled notification data
-    try:
-        notificationPfile = open("notify.pkl", "rb")
-        notification_data = pickle.load(notificationPfile)
-        print("Pickled notification read")
-        notificationPfile.close()
-    except:
-        print("Notification pickle file not found")
-        notification_data = {
-            "LastSummary": datetime.datetime.now() + datetime.timedelta(days=-3)
-        }
-
-    # sendReport()
 
     while True:
         time.sleep(1)
@@ -280,38 +448,30 @@ def mqtt_monitor():
             allNodes = Node.objects.all()
 
             for n in allNodes:
-                # if nothing then our 'patience' will run out
-                if (timezone.now() - n.lastseen) > datetime.timedelta(
-                    minutes=n.allowedDowntime
-                ):
-                    print(
-                        "Node {} not seen for over {} minutes".format(
-                            n, n.allowedDowntime
+                if n.lastseen:
+                    # if nothing then our 'patience' will run out
+                    if (timezone.now() - n.lastseen) > datetime.timedelta(
+                        minutes=n.allowedDowntime
+                    ):
+                        print(
+                            "Node {} not seen for over {} minutes".format(
+                                n, n.allowedDowntime
+                            )
                         )
-                    )
-                    missing_node(n)
+                        missing_node(n)
 
             if (timezone.now() - startTime) > datetime.timedelta(
                 hours=1
             ):  # this section is ony run if the script has been running for an hour
                 if timezone.now().hour > 7:  # run at certain time of the day
-                    xx = 1
+                    lsConf = Setting.objects.get(sKey="LastSummary")
                     # print("Check 1 {}".format(notification_data["LastSummary"]))
-                    if (
-                        notification_data["LastSummary"].day
-                        != datetime.datetime.now().day
-                    ):
+                    if (lsConf.dValue != timezone.now().day):
                         print("Send 8am messages")
                         sendReport()
+                        lsConf.dValue = timezone.now()
+                        lsConf.save()
                         # update out notification data and save
-                        notification_data["LastSummary"] = datetime.datetime.now()
-                        # write a pickle containing current notification data
-                        try:
-                            notificationPfile = open("notify.pkl", "wb")
-                            pickle.dump(notification_data, notificationPfile)
-                            notificationPfile.close()
-                        except:
-                            print("Notification Pickle failed")
 
 
 # ********************************************************************

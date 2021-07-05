@@ -67,7 +67,7 @@ def node_update(request, node_id):
             # process the data in form.cleaned_data as required
             form.save()
             # redirect to a new URL:
-            return HttpResponseRedirect(reverse("node_detail", args=[node.id]))
+            return HttpResponseRedirect(reverse("monitor:node_detail", args=[node.id]))
     # if a GET (or any other method) we'll create a blank form
     else:
         form = NodeUpdateModelForm(instance=node)
