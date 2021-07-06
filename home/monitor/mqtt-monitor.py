@@ -453,7 +453,7 @@ def mqtt_monitor():
                     if (timezone.now() - n.lastseen) > datetime.timedelta(
                         minutes=n.allowedDowntime
                     ):
-                        print(f"Node {n} not seen for over {n.allowedDowntime} minutes, lastseen is {n.lastseen}, current time is {timezone.now()}")
+                        print(f"Node {n} not seen for over {n.allowedDowntime} minutes")
                         missing_node(n)
 
             if (timezone.now() - startTime) > datetime.timedelta(
