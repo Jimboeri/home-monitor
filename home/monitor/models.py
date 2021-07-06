@@ -73,6 +73,7 @@ class Node(models.Model):
     def online(self):
         self.status = 'C'
         self.textStatus = "Online"
+        self.lastseen = timezone.now()
         self.save()
         return
 

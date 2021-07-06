@@ -251,6 +251,7 @@ def shellies(client, userdata, msg):
             if "ip" in jPayload:
                 node.ipAddr = jPayload["ip"]
             node.online()
+            node.lastData = sPayload
             node.save()
             return
 
@@ -271,6 +272,7 @@ def shellies(client, userdata, msg):
                 node.ipAddr = jPayload["ip"]
     
     node.online()
+    node.lastData = sPayload
     node.save()
     print(f"Node {node.nodeID} has been updated in shellies")
 
