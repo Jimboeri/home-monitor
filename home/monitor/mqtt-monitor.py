@@ -300,9 +300,7 @@ def missing_node(node):
         node.textStatus = "Missing"
         node.status = "X"
         node.notification_sent = True
-        node.status_sent = timezone.make_aware(
-            datetime.datetime.now(), timezone.get_current_timezone()
-        )
+        node.status_sent = timezone.now()
         node.save()
         cDict = {"node": node, "base_url": eWeb_Base_URL}
         sendNotifyEmail(
@@ -455,11 +453,7 @@ def mqtt_monitor():
                     if (timezone.now() - n.lastseen) > datetime.timedelta(
                         minutes=n.allowedDowntime
                     ):
-                        print(
-                            "Node {} not seen for over {} minutes".format(
-                                n, n.allowedDowntime
-                            )
-                        )
+                        print(f"Node {n} not seen for over {n.allowedDowntime} minutes, lastseen is {n.lastseen}, current time is {timezone.now()}")
                         missing_node(n)
 
             if (timezone.now() - startTime) > datetime.timedelta(
