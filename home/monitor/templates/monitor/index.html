@@ -14,6 +14,8 @@ Node List
         <div class="col-md-2 mb-md-2">
           {% if node.status == 'X' %} 
             <div class="card bg-dark text-white">
+          {% elif node.status == 'M' %} 
+            <div class="card bg-warning">
           {% else %}
             <div class="card bg-success">
           {% endif %}
