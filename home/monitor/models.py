@@ -62,6 +62,7 @@ class Node(models.Model):
     model = models.CharField(max_length=100, null=True, blank=True)
     macAddr = models.CharField(max_length=20, null=True, blank=True)
     ipAddr = models.CharField(max_length=20, null=True, blank=True)
+    generated = models.CharField(max_length=30, null=True, blank=True)
 
 
     class Meta:

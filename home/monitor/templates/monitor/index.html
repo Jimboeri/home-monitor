@@ -7,41 +7,31 @@ Node List
 {% endblock %}
 
 {% block web-body %}
-    <h1>Node List</h1>
-    <div id="devices">
-      {% if offlineNodes %}
-        <div id="offlineNodes" class="devices">
-          <p>Offline nodes</p>
-          <ul id='nodeoffline'>
-            {% for node in offlineNodes %}
-              <li><a href="{% url 'monitor:node_detail' node.id %}">{{node.nodeID}}</a> 
-                {% if node.descr %} ({{node.descr}}) {% endif %}
-                {% if node.battStatus == "W" %} Battery may be flat ({{node.battLevel}} {{node.battName}})
-                {% elif node.battStatus == "C" %} Battery may be flat ({{node.battLevel}} {{node.battName}})
-                {% endif %}
-              </li>
-            {% endfor %}
-          </ul>
+  <h1>Node List</h1>
+  <div id="devices">
+    <div class = "row row-cols-6">
+      {% for node in nodeList %}
+        <div class="col-md-2 mb-md-2">
+          {% if node.status == 'X' %} 
+            <div class="card bg-dark text-white">
+          {% else %}
+            <div class="card bg-success">
+          {% endif %}
+            <div class="card-header">
+              {% if node.status == 'X' %}
+                <a href="{% url 'monitor:node_detail' node.id %}" class="stretched-link text-white">{{node.nodeID}}</a>
+              {% else %}
+                <a href="{% url 'monitor:node_detail' node.id %}" class="stretched-link text-body">{{node.nodeID}}</a>
+              {% endif %}
+            </div>
+            
+            <div class="card-body">
+              {% if node.descr %} {{node.descr }} <br> {% endif %}
+              {% if node.battLevel %}Current battery value: {{node.battLevel}}<br>{% endif %}
+            </div>
+          </div>
         </div>
-      {% endif %}
-
-      <div id="onlineNodes" class="devices">
-        {% if onlineNodes %}
-          <p>Online nodes</p>
-          <ul id='nodeonline'>
-            {% for node in onlineNodes %}
-                <li><a href="{% url 'monitor:node_detail' node.id %}">{{node.nodeID}}</a>
-                  {% if node.descr %} ({{node.descr}}) {% endif %}
-                  {% if node.battStatus == "W" %} Battery warning ({{node.battLevel}} {{node.battName}})
-                  {% elif node.battStatus == "C" %} Critical Battery warning ({{node.battLevel}} {{node.battName}})
-                  {% endif %}
-                </li>
-            {% endfor %}
-            </ul>
-        {% else %}
-            <p>No nodes are online</p>
-        {% endif %}
+      {% endfor %}
     </div>
-    
   </div>
 {% endblock %}

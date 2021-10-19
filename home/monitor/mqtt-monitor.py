@@ -8,11 +8,18 @@ from django.conf import settings
 import os, sys, time
 import pickle
 
-# import logging
+import logging, syslog
 import datetime
 from django.utils import timezone
 import json
 import smtplib
+
+# Define constants
+DEBUG = 10
+INFO = 20
+WARNING = 30
+ERROR = 40
+CRITICAL = 50
 
 # from email.MIMEMultipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -35,6 +42,10 @@ eMail_Password = os.getenv("HOME_MAIL_PASSWORD", "")
 
 eWeb_Base_URL = os.getenv("HOME_WEB_BASE_URL", "http://monitor.west.net.nz")
 
+baseLogging = int(os.getenv("BASE_LOGGING", WARNING))
+
+bTesting = True
+
 # eMqtt_client_id = os.getenv('MQTT_CLIENT_ID', 'mqtt_monitor')
 print("MQTT client id is {}".format(eMqtt_client_id))
 # The mqtt client is initialised
@@ -52,6 +63,29 @@ def is_json(myjson):
         return False
     return True
 
+# *******************************************************************
+def prDebug(tStr, base=baseLogging, level=INFO):
+    """
+    Control output to logs
+    """
+    if level >= base:       # only print if level is high enough
+        if level <= 10:     # DEBUG
+            print(tStr)
+            logging.debug(tStr)
+        elif level <= 20:   # INFO
+            print(tStr)
+            logging.info(tStr)
+        elif level <= 30:   # WARNING
+            print(f"WARNING {tStr}")
+            logging.warning(tStr)
+        elif level <= 40:   # WARNING
+            print(f"ERROR {tStr}")
+            logging.error(tStr)
+        elif level <= 50:   # WARNING
+            print(f"CRITICAL {tStr}")
+            logging.critical(tStr)
+    return
+
 
 # ********************************************************************
 def mqtt_on_connect(client, userdata, flags, rc):
@@ -60,13 +94,13 @@ def mqtt_on_connect(client, userdata, flags, rc):
     """
     Topics = ["house", "zigbee2mqtt", "shellies", "homeassistant"]
 
-    print("MQTT conn entered")
+    prDebug("MQTT conn entered")
     for topic in Topics:
         cTop = topic + "/#"
         client.subscribe(cTop)
-        print(f"Subscribed to {cTop}")
+        prDebug(f"Subscribed to {cTop}")
     
-    print("MQTTConn finished")
+    prDebug("MQTTConn finished")
     return
 
 
@@ -104,13 +138,13 @@ def mqtt_on_message(client, userdata, msg):
 
 
     cNodeID = cTopic[1]
-    print(f"NodeID: {cNodeID}")
+    prDebug(f"NodeID: {cNodeID}")
     #print(f"JSON Payload is {jPayload}")
     
     try:
         nd, created = Node.objects.get_or_create(nodeID=cNodeID)
     except Exception as e:
-        print(e)
+        prDebug(f"Node creation error: {e}", level=ERROR)
         return
 
     if nd.status != "M":
@@ -125,7 +159,7 @@ def mqtt_on_message(client, userdata, msg):
     nd.status = "C"
     nd.lastData = sPayload.replace('","', '", "')
     if nd.battName:
-        print("Battery name is {}".format(nd.battName))
+        prDebug("Battery name is {}".format(nd.battName), level=DEBUG)
         if nd.battName in jPayload:
             nd.battLevel = jPayload[nd.battName]
             nd.battMonitor = True
@@ -136,15 +170,15 @@ def mqtt_on_message(client, userdata, msg):
             else:
                 nd.battStatus = "C"
     if "RSSI" in jPayload:
-        print(f"RSSI: {jPayload}")
+        prDebug(f"RSSI: {jPayload}", level=DEBUG)
         nd.RSSI = float(jPayload["RSSI"])
 
     nd.save()
 
     if created:
-        print("Node {} has been created".format(nd.nodeID))
+        prDebug("Node {} has been created".format(nd.nodeID), level=DEBUG)
     else:
-        print("Node {} has been updated".format(nd.nodeID))
+        prDebug("Node {} has been updated".format(nd.nodeID), level=DEBUG)
 
 # ********************************************************************
 def hassDiscovery(client, userdata, msg):
@@ -169,6 +203,8 @@ def hassDiscovery(client, userdata, msg):
             if "name" in jPayload["device"]:
                 cNode = jPayload["device"]["name"]
                 node, created = Node.objects.get_or_create(nodeID = cNode)
+                if created:
+                    node.generated = "hassDiscovery"
 
                 if "model" in jPayload["device"]:
                     node.model= jPayload["device"]["model"]
@@ -204,6 +240,8 @@ def zigbee2mqttData(client, userdata, msg):
     node, created = Node.objects.get_or_create(nodeID = cNode)
     node.lastData = sPayload
     node.lastseen = timezone.now()
+    if created:
+        node.generated = "zigbee2mqttData"
 
     if is_json(sPayload):
         jPayload = json.loads(sPayload)
@@ -256,6 +294,8 @@ def shellies(client, userdata, msg):
             return
 
     node, created = Node.objects.get_or_create(nodeID = cNode)
+    if created:
+        node.generated = "shellies"
 
     if len(cTopic) == 3:
         if cTopic[2] == "online" and sPayload == "false":
@@ -274,7 +314,7 @@ def shellies(client, userdata, msg):
     node.online()
     node.lastData = sPayload
     node.save()
-    print(f"Node {node.nodeID} has been updated in shellies")
+    prDebug(f"Node {node.nodeID} has been updated in shellies", level=DEBUG)
 
     return
 
@@ -345,7 +385,7 @@ def sendReport():
     """
   Function collates data and sends a full system report
   """
-    print("Send full report")
+    prDebug("Send full report", level=INFO)
     allNodes = Node.objects.all()
     batWarnList = []
     batCritList = []
@@ -372,8 +412,8 @@ def sendReport():
         "nodeDown": nodeDownList,
         "base_url": eWeb_Base_URL,
     }
-    sendNotifyEmail("Home IoT report", cDict, "monitor/email-full.html")
-    print("Sent Daily email")
+    sendNotifyEmail("Home IoT report", cDict, "monitor/email/email-full.html")
+    prDebug("Sent Daily email", level=INFO)
     return
 
 
@@ -402,6 +442,16 @@ def is_json(myjson):
 def mqtt_monitor():
     """ The main program that sends updates to the MQTT system
     """
+
+    # Set up logging
+    print("Home monitor script Starting")
+    syslog.syslog("Home monitor script Starting")
+    FORMAT = "%(asctime)-15s %(message)s"
+    logging.basicConfig(
+        filename="home-monitor.log",
+        level=WARNING,
+        format=FORMAT,
+    )
 
     # functions called by mqtt client
     client.on_connect = mqtt_on_connect
@@ -433,6 +483,9 @@ def mqtt_monitor():
 
     startTime = timezone.now()
 
+    if bTesting:
+        sendReport()
+
     while True:
         time.sleep(1)
 
@@ -443,7 +496,7 @@ def mqtt_monitor():
             # update the checkpoint timer
             checkTimer = timezone.now()  # reset timer
 
-            print("Timer check")
+            prDebug("Timer check", level=INFO)
 
             allNodes = Node.objects.all()
 
@@ -453,7 +506,7 @@ def mqtt_monitor():
                     if (timezone.now() - n.lastseen) > datetime.timedelta(
                         minutes=n.allowedDowntime
                     ):
-                        print(f"Node {n} not seen for over {n.allowedDowntime} minutes")
+                        prDebug(f"Node {n} not seen for over {n.allowedDowntime} minutes", level=WARNING)
                         missing_node(n)
 
             if (timezone.now() - startTime) > datetime.timedelta(
@@ -463,7 +516,7 @@ def mqtt_monitor():
                     lsConf = Setting.objects.get(sKey="LastSummary")
                     # print("Check 1 {}".format(notification_data["LastSummary"]))
                     if (lsConf.dValue != timezone.now().day):
-                        print("Send 8am messages")
+                        prDebug("Send 8am messages", level=INFO)
                         sendReport()
                         lsConf.dValue = timezone.now()
                         lsConf.save()

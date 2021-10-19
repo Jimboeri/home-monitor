@@ -23,13 +23,9 @@ def node_list(request):
 # *****************************************************************************
 def index(request):
     nodeList = Node.objects.order_by("nodeID")
-    onlineNodes = nodeList.filter(status__startswith="C")
-    offlineNodes = Node.objects.order_by("nodeID").filter(status="X")
-    MaintNodes = Node.objects.order_by("nodeID").filter(status="M")
+
     context = {
         "nodeList": nodeList,
-        "onlineNodes": onlineNodes,
-        "offlineNodes": offlineNodes,
     }
     return render(request, "monitor/index.html", context)
 
