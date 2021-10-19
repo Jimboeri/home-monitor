@@ -44,7 +44,11 @@ eWeb_Base_URL = os.getenv("HOME_WEB_BASE_URL", "http://monitor.west.net.nz")
 
 baseLogging = int(os.getenv("BASE_LOGGING", WARNING))
 
-bTesting = True
+eTesting = os.getenv("TESTING", "F")
+if eTesting is "T":
+    bTesting = True
+else:
+    bTesting = False
 
 # eMqtt_client_id = os.getenv('MQTT_CLIENT_ID', 'mqtt_monitor')
 print("MQTT client id is {}".format(eMqtt_client_id))
