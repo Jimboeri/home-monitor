@@ -86,6 +86,8 @@ class Entity(models.Model):
     )
     state_topic = models.CharField(max_length=200, null=True, blank=True)
     availability_topic = models.CharField(max_length=200, null=True, blank=True)
+    text_state = models.CharField(max_length=200, null=True, blank=True)
+    num_state = models.FloatField(default=0.0)
 
     def __str__(self):
         return(f"Node: {self.node.nodeID}, Entity: {self.entityID}")

@@ -45,7 +45,7 @@ eWeb_Base_URL = os.getenv("HOME_WEB_BASE_URL", "http://monitor.west.net.nz")
 baseLogging = int(os.getenv("BASE_LOGGING", WARNING))
 
 eTesting = os.getenv("TESTING", "F")
-if eTesting is "T":
+if eTesting == "T":
     bTesting = True
 else:
     bTesting = False
@@ -66,6 +66,20 @@ def is_json(myjson):
     except ValueError as e:
         return False
     return True
+
+# ********************************************************************
+def is_number(s):
+    """
+    Function to see if a string is numeric
+    """
+    try:
+        float(s)
+        return True
+    except ValueError:
+        pass
+ 
+    return False
+
 
 # *******************************************************************
 def prDebug(tStr, base=baseLogging, level=INFO):
@@ -135,15 +149,25 @@ def mqtt_on_message(client, userdata, msg):
         shellies(client, userdata, msg)
         return
 
+
     jPayload = {}
     if is_json(sPayload):
         jPayload = json.loads(sPayload)
         #print(f"on_msg, JSON check: Input: {sPayload}, output: {jPayload}, passed as valid")
 
 
+    lEnt = Entity.objects.filter(state_topic=msg.topic)
+    if len(lEnt) > 0:
+        if len(lEnt) > 1:
+            prDebug(f"Found multiple entities for topic {msg.topic}")
+        else:
+            lEnt[0].text_state = sPayload
+            if is_number(sPayload):
+                lEnt[0].num_state = float(sPayload)
+            lEnt[0].save()
+
     cNodeID = cTopic[1]
-    prDebug(f"NodeID: {cNodeID}")
-    #print(f"JSON Payload is {jPayload}")
+    prDebug(f"NodeID: {cNodeID}", level=DEBUG)
     
     try:
         nd, created = Node.objects.get_or_create(nodeID=cNodeID)
@@ -180,9 +204,9 @@ def mqtt_on_message(client, userdata, msg):
     nd.save()
 
     if created:
-        prDebug("Node {} has been created".format(nd.nodeID), level=DEBUG)
+        prDebug("Node {} has been created in mqtt_on_message".format(nd.nodeID), level=DEBUG)
     else:
-        prDebug("Node {} has been updated".format(nd.nodeID), level=DEBUG)
+        prDebug("Node {} has been updated in mqtt_on_message".format(nd.nodeID), level=DEBUG)
 
 # ********************************************************************
 def hassDiscovery(client, userdata, msg):
@@ -190,15 +214,15 @@ def hassDiscovery(client, userdata, msg):
     """
     
     sPayload = msg.payload.decode()
-    print(f"Process Home assistant discovery, topic: {msg.topic}, payload: {sPayload}")
+    prDebug(f"Process Home assistant discovery, topic: {msg.topic}, payload: {sPayload}", level=INFO)
     cTopic = msg.topic.split("/")
     if len(cTopic) < 3:
-        print(f"Homeassistant error in discovery topic: {msg.topic}")
+        prDebug(f"Homeassistant error in discovery topic: {msg.topic}", level=ERROR)
         return
     try:
         domain, created = HassDomain.objects.get_or_create(name=cTopic[1])
     except Exception as e:
-        print(e)
+        prDebug(f"Error accessing/creating Domain record in hassDiscovery, error is: {e}", level=ERROR)
         return
 
     if is_json(sPayload):
