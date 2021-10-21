@@ -165,6 +165,8 @@ def mqtt_on_message(client, userdata, msg):
             if is_number(sPayload):
                 lEnt[0].num_state = float(sPayload)
             lEnt[0].save()
+            node_back_online(lEnt[0].node)
+            
 
     cNodeID = cTopic[1]
     prDebug(f"NodeID: {cNodeID}", level=DEBUG)
@@ -342,7 +344,7 @@ def shellies(client, userdata, msg):
     node.online()
     node.lastData = sPayload
     node.save()
-    prDebug(f"Node {node.nodeID} has been updated in shellies", level=DEBUG)
+    prDebug(f"Node {node.nodeID} has been updated in shellies", level=INFO)
 
     return
 
@@ -537,13 +539,11 @@ def mqtt_monitor():
                         prDebug(f"Node {n} not seen for over {n.allowedDowntime} minutes", level=WARNING)
                         missing_node(n)
 
-            if (timezone.now() - startTime) > datetime.timedelta(
-                hours=1
-            ):  # this section is ony run if the script has been running for an hour
+            if (timezone.now() - startTime) > datetime.timedelta(hours=1):  # this section is ony run if the script has been running for an hour            
                 if timezone.now().hour > 7:  # run at certain time of the day
                     lsConf = Setting.objects.get(sKey="LastSummary")
-                    # print("Check 1 {}".format(notification_data["LastSummary"]))
-                    if (lsConf.dValue != timezone.now().day):
+                    #prDebug(f"Check: stored {lsConf.dValue}", level=DEBUG)
+                    if (lsConf.dValue.day != timezone.now().day):
                         prDebug("Send 8am messages", level=INFO)
                         sendReport()
                         lsConf.dValue = timezone.now()
