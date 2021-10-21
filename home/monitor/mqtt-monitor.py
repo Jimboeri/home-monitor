@@ -374,7 +374,7 @@ def missing_node(node):
         sendNotifyEmail(
             "Node down notification for {}".format(node.nodeID),
             cDict,
-            "monitor/email-down.html",
+            "monitor/email/email-down.html",
         )
         print("Node {} marked as down and notification sent".format(node.nodeID))
     return
@@ -497,7 +497,7 @@ def mqtt_monitor():
 
     # aNode = Node.objects.get(pk=10)
     # cDict = {'node': aNode}
-    # sendNotifyEmail("Test email", cDict, "monitor/email-down.html")
+    # sendNotifyEmail("Test email", cDict, "monitor/email/email-down.html")
     # print("Sent test email")
 
     conf, created = Setting.objects.get_or_create(sKey="LastSummary")
