@@ -1,14 +1,17 @@
 #!/usr/bin/python
-
+from email.mime.text import MIMEText
 import paho.mqtt.client as mqtt
 import paho.mqtt.publish as publish
 from django import template
 import django.template.loader
 from django.conf import settings
-import os, sys, time
+import os
+import sys
+import time
 import pickle
 
-import logging, syslog
+import logging
+import syslog
 import datetime
 from django.utils import timezone
 import json
@@ -22,12 +25,12 @@ ERROR = 40
 CRITICAL = 50
 
 # from email.MIMEMultipart import MIMEMultipart
-from email.mime.text import MIMEText
 
 sys.path.append("/code/home")
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "home.settings")
 django.setup()
-from monitor.models import Node, Setting, HassDomain, Entity
+from monitor.models import Node, Setting, HassDomain, Entity, DeviceType
+
 
 eMqtt_client_id = os.getenv("HOME_MQTT_CLIENT_ID", "mqtt_monitor")
 eMqtt_host = os.getenv("HOME_MQTT_HOST", "mqtt.west.net.nz")
@@ -57,6 +60,8 @@ print("MQTT client id is {}".format(eMqtt_client_id))
 client = mqtt.Client()
 
 # ********************************************************************
+
+
 def is_json(myjson):
     """
     Function to check if an input is a valid JSON message
@@ -68,6 +73,8 @@ def is_json(myjson):
     return True
 
 # ********************************************************************
+
+
 def is_number(s):
     """
     Function to see if a string is numeric
@@ -77,7 +84,7 @@ def is_number(s):
         return True
     except ValueError:
         pass
- 
+
     return False
 
 
@@ -117,7 +124,7 @@ def mqtt_on_connect(client, userdata, flags, rc):
         cTop = topic + "/#"
         client.subscribe(cTop)
         prDebug(f"Subscribed to {cTop}")
-    
+
     prDebug("MQTTConn finished")
     return
 
@@ -127,16 +134,16 @@ def mqtt_on_message(client, userdata, msg):
     """This procedure is called each time a mqtt message is received"""
 
     sPayload = msg.payload.decode()
-    
+
     cTopic = msg.topic.split("/")
-    #print(cTopic)
+    # print(cTopic)
 
     # Processing varies depending on the topic
 
     if cTopic[0] == "homeassistant":    # This is a topic used for zigbee2mqtt discovery messages
         hassDiscovery(client, userdata, msg)
-        return  
-    
+        return
+
     if cTopic[0] == "tasmota":    # This is a topic used for Tasmota discovery messages
         tasmotaDiscovery(client, userdata, msg)
         return
@@ -149,12 +156,10 @@ def mqtt_on_message(client, userdata, msg):
         shellies(client, userdata, msg)
         return
 
-
     jPayload = {}
     if is_json(sPayload):
         jPayload = json.loads(sPayload)
         #print(f"on_msg, JSON check: Input: {sPayload}, output: {jPayload}, passed as valid")
-
 
     lEnt = Entity.objects.filter(state_topic=msg.topic)
     if len(lEnt) > 0:
@@ -166,11 +171,10 @@ def mqtt_on_message(client, userdata, msg):
                 lEnt[0].num_state = float(sPayload)
             lEnt[0].save()
             node_back_online(lEnt[0].node)
-            
 
     cNodeID = cTopic[1]
     prDebug(f"NodeID: {cNodeID}", level=DEBUG)
-    
+
     try:
         nd, created = Node.objects.get_or_create(nodeID=cNodeID)
     except Exception as e:
@@ -206,25 +210,32 @@ def mqtt_on_message(client, userdata, msg):
     nd.save()
 
     if created:
-        prDebug("Node {} has been created in mqtt_on_message".format(nd.nodeID), level=DEBUG)
+        prDebug("Node {} has been created in mqtt_on_message".format(
+            nd.nodeID), level=DEBUG)
     else:
-        prDebug("Node {} has been updated in mqtt_on_message".format(nd.nodeID), level=DEBUG)
+        prDebug("Node {} has been updated in mqtt_on_message".format(
+            nd.nodeID), level=DEBUG)
 
 # ********************************************************************
+
+
 def hassDiscovery(client, userdata, msg):
     """
     """
-    
+
     sPayload = msg.payload.decode()
-    prDebug(f"Process Home assistant discovery, topic: {msg.topic}, payload: {sPayload}", level=INFO)
+    prDebug(
+        f"Process Home assistant discovery, topic: {msg.topic}, payload: {sPayload}", level=INFO)
     cTopic = msg.topic.split("/")
     if len(cTopic) < 3:
-        prDebug(f"Homeassistant error in discovery topic: {msg.topic}", level=ERROR)
+        prDebug(
+            f"Homeassistant error in discovery topic: {msg.topic}", level=ERROR)
         return
     try:
         domain, created = HassDomain.objects.get_or_create(name=cTopic[1])
     except Exception as e:
-        prDebug(f"Error accessing/creating Domain record in hassDiscovery, error is: {e}", level=ERROR)
+        prDebug(
+            f"Error accessing/creating Domain record in hassDiscovery, error is: {e}", level=ERROR)
         return
 
     if is_json(sPayload):
@@ -232,23 +243,30 @@ def hassDiscovery(client, userdata, msg):
         if "device" in jPayload:
             if "name" in jPayload["device"]:
                 cNode = jPayload["device"]["name"]
-                node, created = Node.objects.get_or_create(nodeID = cNode)
+                node, created = Node.objects.get_or_create(nodeID=cNode)
                 if created:
                     node.generated = "hassDiscovery"
 
                 if "model" in jPayload["device"]:
-                    node.model= jPayload["device"]["model"]
+                    node.model = jPayload["device"]["model"]
+
+                if "device" in jPayload:
+                    jDevice = jPayload["device"]
+                    if "sw_version" in jDevice:
+                        if "esphome" in jDevice["sw_version"]:
+                            dev, created = DeviceType.objects.get_or_create(name="Esphome")
+                            node.devType = dev
 
                 node.save()
 
                 if "unique_id" in jPayload:
-                    entity, eCreated = Entity.objects.get_or_create(entityID = jPayload["unique_id"], node = node, domain = domain)
+                    entity, eCreated = Entity.objects.get_or_create(
+                        entityID=jPayload["unique_id"], node=node, domain=domain)
 
                     if "state_topic" in jPayload:
                         entity.state_topic = jPayload["state_topic"]
                     if "availability_topic" in jPayload:
                         entity.availability_topic = jPayload["availability_topic"]
-                    
 
                     if "value_template" in jPayload:
                         tStr = jPayload["value_template"]
@@ -264,21 +282,25 @@ def hassDiscovery(client, userdata, msg):
     return
 
 # ********************************************************************
+
+
 def tasmotaDiscovery(client, userdata, msg):
     """
     """
     return
 
 # ********************************************************************
+
+
 def zigbee2mqttData(client, userdata, msg):
     """
     """
     sPayload = msg.payload.decode()
-    
+
     cTopic = msg.topic.split("/")
     cNode = cTopic[1]
 
-    node, created = Node.objects.get_or_create(nodeID = cNode)
+    node, created = Node.objects.get_or_create(nodeID=cNode)
     node.lastData = sPayload
     node.lastseen = timezone.now()
     if created:
@@ -300,29 +322,38 @@ def zigbee2mqttData(client, userdata, msg):
             node.battVoltage = jPayload["voltage"] / 1000
         if "linkquality" in jPayload:
             node.linkQuality = jPayload["linkquality"]
+        
+        if node.devType.name != "Zigbee":
+            dev, created = DeviceType.objects.get_or_create(name="Zigbee")
+            node.devType = dev
 
         for e in node.entity_set.all():
             if e.json_key in jPayload:
                 if is_number(jPayload[e.json_key]):
                     e.num_state = float(jPayload[e.json_key])
-                    prDebug(f"Node {node.nodeID}, entity {e.entityID} numeric update", level = DEBUG)
+                    prDebug(
+                        f"Node {node.nodeID}, entity {e.entityID} numeric update", level=DEBUG)
                 else:
                     e.text_state = jPayload[e.json_key]
-                    prDebug(f"Node {node.nodeID}, entity {e.entityID} text update", level = DEBUG)
+                    prDebug(
+                        f"Node {node.nodeID}, entity {e.entityID} text update", level=DEBUG)
                 e.save()
 
     node.online()
     node.save()
-    prDebug(f"Node {node.nodeID} has been updated in zigbee2mqttData", level=INFO)
+    prDebug(
+        f"Node {node.nodeID} has been updated in zigbee2mqttData", level=INFO)
 
     return
 
 # ********************************************************************
+
+
 def shellies(client, userdata, msg):
     """
     """
     sPayload = msg.payload.decode()
-    
+
     cTopic = msg.topic.split("/")
     cNode = cTopic[1]
 
@@ -332,7 +363,7 @@ def shellies(client, userdata, msg):
 
     if cTopic[1] == "announce":
         if "id" in jPayload:
-            node, created = Node.objects.get_or_create(nodeID = jPayload["id"])
+            node, created = Node.objects.get_or_create(nodeID=jPayload["id"])
             if "model" in jPayload:
                 node.model = jPayload["model"]
             if "mac" in jPayload:
@@ -344,9 +375,14 @@ def shellies(client, userdata, msg):
             node.save()
             return
 
-    node, created = Node.objects.get_or_create(nodeID = cNode)
+    node, created = Node.objects.get_or_create(nodeID=cNode)
     if created:
         node.generated = "shellies"
+
+    # Device type processing
+    dev, devCreated = DeviceType.objects.get_or_create(name="Shelly")
+
+    node.devType = dev
 
     if len(cTopic) == 3:
         if cTopic[2] == "online" and sPayload == "false":
@@ -361,7 +397,7 @@ def shellies(client, userdata, msg):
                 node.macAddr = jPayload["mac"]
             if "ip" in jPayload:
                 node.ipAddr = jPayload["ip"]
-    
+
     node.online()
     node.lastData = sPayload
     node.save()
@@ -529,7 +565,7 @@ def mqtt_monitor():
         conf.save()
 
     notification_data = {
-        "LastSummary":conf.dValue,
+        "LastSummary": conf.dValue,
     }
 
     startTime = timezone.now()
@@ -557,10 +593,17 @@ def mqtt_monitor():
                     if (timezone.now() - n.lastseen) > datetime.timedelta(
                         minutes=n.allowedDowntime
                     ):
-                        prDebug(f"Node {n} not seen for over {n.allowedDowntime} minutes", level=WARNING)
-                        missing_node(n)
+                        tdRunning = timezone.now() - startTime
+                        if tdRunning.total_seconds() > (
+                            n.allowedDowntime * 60
+                        ):  # dont check if nodes are down until after node allowed downtime since script started
+                            prDebug(
+                                f"Node {n} not seen for over {n.allowedDowntime} minutes", level=WARNING)
+                            missing_node(n)
 
-            if (timezone.now() - startTime) > datetime.timedelta(hours=1):  # this section is ony run if the script has been running for an hour            
+            # this section is ony run if the script has been running for an hour
+            if (timezone.now() - startTime) > datetime.timedelta(hours=1):
+                #prDebug(f"Script running for more than 1 hour", level=DEBUG)
                 if timezone.now().hour > 7:  # run at certain time of the day
                     lsConf = Setting.objects.get(sKey="LastSummary")
                     #prDebug(f"Check: stored {lsConf.dValue}", level=DEBUG)

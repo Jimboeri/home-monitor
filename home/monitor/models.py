@@ -4,6 +4,8 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils import timezone
 
+# *******************************************************************
+
 
 class HassDomain(models.Model):
     name = models.CharField(max_length=50)
@@ -11,9 +13,27 @@ class HassDomain(models.Model):
     def __str__(self):
         return f"{self.name}"
 
-# Create your models here.
+# *******************************************************************
+
+
+class DeviceType(models.Model):
+    name = models.CharField(max_length=30)
+    descr = models.TextField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.name}"
+
+    class Meta:
+        ordering = ["name"]
+
+# *******************************************************************
+
+
 class Node(models.Model):
     nodeID = models.CharField(max_length=100)
+    devType = models.ForeignKey(
+        DeviceType, on_delete=models.SET_NULL, null=True, blank=True
+    )
     descr = models.TextField(null=True, blank=True)
     topic = models.CharField(max_length=300, null=True, blank=True)
     status = models.CharField(
@@ -64,7 +84,6 @@ class Node(models.Model):
     ipAddr = models.CharField(max_length=20, null=True, blank=True)
     generated = models.CharField(max_length=30, null=True, blank=True)
 
-
     class Meta:
         ordering = ["nodeID"]
 
@@ -78,15 +97,17 @@ class Node(models.Model):
         self.save()
         return
 
+
 class Entity(models.Model):
     entityID = models.CharField(max_length=100)
-    node =  models.ForeignKey(Node, on_delete=models.CASCADE)
+    node = models.ForeignKey(Node, on_delete=models.CASCADE)
     domain = models.ForeignKey(
         HassDomain, on_delete=models.SET_NULL, null=True, blank=True
     )
     state_topic = models.CharField(max_length=200, null=True, blank=True)
     json_key = models.CharField(max_length=50, null=True, blank=True)
-    availability_topic = models.CharField(max_length=200, null=True, blank=True)
+    availability_topic = models.CharField(
+        max_length=200, null=True, blank=True)
     text_state = models.CharField(max_length=200, null=True, blank=True)
     num_state = models.FloatField(default=0.0)
 
@@ -126,6 +147,3 @@ class Setting(models.Model):
 
     def __str__(self):
         return "{}: {}".format(self.sKey, self.sValue)
-
-
-
