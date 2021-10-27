@@ -2,4 +2,4 @@ docker-compose.yml
 home/monitor/notify.pkl
 home/monitor/migrations/*.py
 home/monitor/home-monitor.log
-home/monitor/home-monitor.log
+*.log
