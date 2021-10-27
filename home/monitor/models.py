@@ -85,6 +85,7 @@ class Entity(models.Model):
         HassDomain, on_delete=models.SET_NULL, null=True, blank=True
     )
     state_topic = models.CharField(max_length=200, null=True, blank=True)
+    json_key = models.CharField(max_length=50, null=True, blank=True)
     availability_topic = models.CharField(max_length=200, null=True, blank=True)
     text_state = models.CharField(max_length=200, null=True, blank=True)
     num_state = models.FloatField(default=0.0)

@@ -248,6 +248,17 @@ def hassDiscovery(client, userdata, msg):
                         entity.state_topic = jPayload["state_topic"]
                     if "availability_topic" in jPayload:
                         entity.availability_topic = jPayload["availability_topic"]
+                    
+
+                    if "value_template" in jPayload:
+                        tStr = jPayload["value_template"]
+                        tStr = tStr.replace("{", "")
+                        tStr = tStr.replace("}", "")
+                        tStr = tStr.replace(" ", "")
+                        lStr = tStr.split(".")
+                        if len(lStr) == 2:
+                            entity.json_key = lStr[1]
+
                     entity.save()
 
     return
@@ -290,9 +301,19 @@ def zigbee2mqttData(client, userdata, msg):
         if "linkquality" in jPayload:
             node.linkQuality = jPayload["linkquality"]
 
+        for e in node.entity_set.all():
+            if e.json_key in jPayload:
+                if is_number(jPayload[e.json_key]):
+                    e.num_state = float(jPayload[e.json_key])
+                    prDebug(f"Node {node.nodeID}, entity {e.entityID} numeric update", level = DEBUG)
+                else:
+                    e.text_state = jPayload[e.json_key]
+                    prDebug(f"Node {node.nodeID}, entity {e.entityID} text update", level = DEBUG)
+                e.save()
+
     node.online()
     node.save()
-    print(f"Node {node.nodeID} has been updated in zigbee2mqttData")
+    prDebug(f"Node {node.nodeID} has been updated in zigbee2mqttData", level=INFO)
 
     return
 

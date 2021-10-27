@@ -30,8 +30,27 @@ Node Details
           <a href="{% url 'monitor:node_remove' node.id %}" class="btn btn-danger" role="button">Remove</a>
         </div>
       {% endif %}
-
     </table>
+    {% if node.entity_set.all %}
+      <table>
+        <tr>
+          <th>Name</th>
+          <th>Domain</th>
+          <th>State</th>
+        </tr>
+        {% for e in node.entity_set.all %}
+          <tr>
+            <td>{{ e.json_key }}</td>
+            <td>{{ e.domain.name }}</td>
+            {% if e.text_state %}
+              <td>{{ e.text_state }}</td>
+            {% else %}
+              <td>{{ e.num_state }}</td>
+            {% endif %}
+          </tr>
+        {% endfor %}
+      </table>
+    {% endif %}
   <a href="{% url 'monitor:node_update' node.id %}" class="btn btn-info" role="button">Update details</a>
   <button onclick="window.location.href = '{% url 'monitor:index' %}';">Main menu</button>
 

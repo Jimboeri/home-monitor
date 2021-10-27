@@ -23,9 +23,10 @@ def node_list(request):
 # *****************************************************************************
 def index(request):
     nodeList = Node.objects.order_by("nodeID")
+    currentList = nodeList.exclude(status__iexact = "M")
 
     context = {
-        "nodeList": nodeList,
+        "nodeList": currentList,
     }
     return render(request, "monitor/index.html", context)
 
