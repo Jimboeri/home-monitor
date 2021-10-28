@@ -323,9 +323,8 @@ def zigbee2mqttData(client, userdata, msg):
         if "linkquality" in jPayload:
             node.linkQuality = jPayload["linkquality"]
         
-        if node.devType.name != "Zigbee":
-            dev, created = DeviceType.objects.get_or_create(name="Zigbee")
-            node.devType = dev
+        dev, created = DeviceType.objects.get_or_create(name="Zigbee")
+        node.devType = dev
 
         for e in node.entity_set.all():
             if e.json_key in jPayload:
@@ -401,7 +400,7 @@ def shellies(client, userdata, msg):
     node.online()
     node.lastData = sPayload
     node.save()
-    prDebug(f"Node {node.nodeID} has been updated in shellies", level=INFO)
+    #prDebug(f"Node {node.nodeID} has been updated in shellies", level=INFO)
 
     return
 
