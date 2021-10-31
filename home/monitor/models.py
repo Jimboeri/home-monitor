@@ -19,6 +19,7 @@ class HassDomain(models.Model):
 class DeviceType(models.Model):
     name = models.CharField(max_length=30)
     descr = models.TextField(null=True, blank=True)
+    noStatus = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.name}"
@@ -70,6 +71,8 @@ class Node(models.Model):
     battStatus = models.CharField(
         max_length=1,
         default=" ",
+        null=True, 
+        blank=True,
         help_text="'G' for good, 'W' for warning, 'C' for critically low, ' ' for not monitored",
     )
     linkQuality = models.FloatField(
