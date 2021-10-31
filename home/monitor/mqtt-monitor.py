@@ -324,7 +324,8 @@ def zigbee2mqttData(client, userdata, msg):
             node.linkQuality = jPayload["linkquality"]
         
         dev, created = DeviceType.objects.get_or_create(name="Zigbee")
-        node.devType = dev
+        if not node.devType:
+            node.devType = dev
 
         for e in node.entity_set.all():
             if e.json_key in jPayload:
@@ -423,6 +424,9 @@ def missing_node(node):
   Procedure run when a node has not been seen for a while
   """
     if node.status == "C":
+        if node.devType and node.devType.noStatus:
+            # some nodes do not send status messages
+            return 
         node.textStatus = "Missing"
         node.status = "X"
         node.notification_sent = True
