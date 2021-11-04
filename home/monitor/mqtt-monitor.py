@@ -171,13 +171,15 @@ def mqtt_on_message(client, userdata, msg):
         return
 
     if len(cTopic) > 2:
-        if cTopic[2] == "status":
+        if cTopic[2] == "state":
             if sPayload == "on" or sPayload == "off":
                 if nd.status != "C":
                     node_back_online(nd)
             elif sPayload == "unavailable":
+                prDebug(f"Node {nd} is unavailable", level=DEBUG)
                 if nd.status != "X":
                     missing_node(nd)
+            return
 
 
     lEnt = Entity.objects.filter(state_topic=msg.topic)
@@ -190,7 +192,6 @@ def mqtt_on_message(client, userdata, msg):
                 lEnt[0].num_state = float(sPayload)
             lEnt[0].save()
             node_back_online(lEnt[0].node)
-
 
 
     if nd.status != "M":
