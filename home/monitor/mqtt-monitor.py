@@ -161,6 +161,27 @@ def mqtt_on_message(client, userdata, msg):
         jPayload = json.loads(sPayload)
         #print(f"on_msg, JSON check: Input: {sPayload}, output: {jPayload}, passed as valid")
 
+    cNodeID = cTopic[1]
+    prDebug(f"NodeID: {cNodeID}", level=DEBUG)
+
+    try:
+        nd, created = Node.objects.get_or_create(nodeID=cNodeID)
+    except Exception as e:
+        prDebug(f"Node creation error: {e}", level=ERROR)
+        return
+
+    if len(cTopic) > 2:
+        if cTopic[2] == "state":
+            if sPayload == "on" or sPayload == "off":
+                if nd.status != "C":
+                    node_back_online(nd)
+            elif sPayload == "unavailable":
+                prDebug(f"Node {nd} is unavailable", level=DEBUG)
+                if nd.status != "X":
+                    missing_node(nd)
+            return
+
+
     lEnt = Entity.objects.filter(state_topic=msg.topic)
     if len(lEnt) > 0:
         if len(lEnt) > 1:
@@ -172,14 +193,6 @@ def mqtt_on_message(client, userdata, msg):
             lEnt[0].save()
             node_back_online(lEnt[0].node)
 
-    cNodeID = cTopic[1]
-    prDebug(f"NodeID: {cNodeID}", level=DEBUG)
-
-    try:
-        nd, created = Node.objects.get_or_create(nodeID=cNodeID)
-    except Exception as e:
-        prDebug(f"Node creation error: {e}", level=ERROR)
-        return
 
     if nd.status != "M":
         if sPayload == "Offline":
