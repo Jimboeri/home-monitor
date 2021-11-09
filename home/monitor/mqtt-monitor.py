@@ -1,4 +1,5 @@
 #!/usr/bin/python
+
 from email.mime.text import MIMEText
 import paho.mqtt.client as mqtt
 import paho.mqtt.publish as publish
@@ -29,8 +30,8 @@ CRITICAL = 50
 sys.path.append("/code/home")
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "home.settings")
 django.setup()
-from monitor.models import Node, Setting, HassDomain, Entity, DeviceType
 
+from monitor.models import Node, Setting, HassDomain, Entity, DeviceType
 
 eMqtt_client_id = os.getenv("HOME_MQTT_CLIENT_ID", "mqtt_monitor")
 eMqtt_host = os.getenv("HOME_MQTT_HOST", "mqtt.west.net.nz")
@@ -50,8 +51,10 @@ baseLogging = int(os.getenv("BASE_LOGGING", WARNING))
 eTesting = os.getenv("TESTING", "F")
 if eTesting == "T":
     bTesting = True
+    tPrefix = "Dev system - "
 else:
     bTesting = False
+    tPrefix = ""
 
 # eMqtt_client_id = os.getenv('MQTT_CLIENT_ID', 'mqtt_monitor')
 print("MQTT client id is {}".format(eMqtt_client_id))
@@ -172,7 +175,7 @@ def mqtt_on_message(client, userdata, msg):
 
     if len(cTopic) > 2:
         if cTopic[2] == "state":
-            if sPayload == "on" or sPayload == "off":
+            if sPayload == "on" or sPayload == "off" or sPayload == "online":
                 if nd.status != "C":
                     node_back_online(nd)
             elif sPayload == "unavailable":
@@ -180,7 +183,6 @@ def mqtt_on_message(client, userdata, msg):
                 if nd.status != "X":
                     missing_node(nd)
             return
-
 
     lEnt = Entity.objects.filter(state_topic=msg.topic)
     if len(lEnt) > 0:
@@ -192,7 +194,6 @@ def mqtt_on_message(client, userdata, msg):
                 lEnt[0].num_state = float(sPayload)
             lEnt[0].save()
             node_back_online(lEnt[0].node)
-
 
     if nd.status != "M":
         if sPayload == "Offline":
@@ -267,7 +268,8 @@ def hassDiscovery(client, userdata, msg):
                     jDevice = jPayload["device"]
                     if "sw_version" in jDevice:
                         if "esphome" in jDevice["sw_version"]:
-                            dev, created = DeviceType.objects.get_or_create(name="Esphome")
+                            dev, created = DeviceType.objects.get_or_create(
+                                name="Esphome")
                             node.devType = dev
 
                 node.save()
@@ -335,7 +337,7 @@ def zigbee2mqttData(client, userdata, msg):
             node.battVoltage = jPayload["voltage"] / 1000
         if "linkquality" in jPayload:
             node.linkQuality = jPayload["linkquality"]
-        
+
         dev, created = DeviceType.objects.get_or_create(name="Zigbee")
         if not node.devType:
             node.devType = dev
@@ -427,7 +429,10 @@ def node_back_online(node):
     node.notification_sent = False
     node.status = "C"
     node.textStatus = "Online"
+    node.lastseen = timezone.now()
     node.save()
+    prDebug(f"Node {node.nodeID} marked as back on line, no notification",
+            base=baseLogging, level=DEBUG)
     return
 
 
@@ -439,7 +444,7 @@ def missing_node(node):
     if node.status == "C":
         if node.devType and node.devType.noStatus:
             # some nodes do not send status messages
-            return 
+            return
         node.textStatus = "Missing"
         node.status = "X"
         node.notification_sent = True
@@ -447,11 +452,12 @@ def missing_node(node):
         node.save()
         cDict = {"node": node, "base_url": eWeb_Base_URL}
         sendNotifyEmail(
-            "Node down notification for {}".format(node.nodeID),
+            f"{tPrefix}Node down notification for {node.nodeID}",
             cDict,
             "monitor/email/email-down.html",
         )
-        print("Node {} marked as down and notification sent".format(node.nodeID))
+        prDebug(f"Node {node.nodeID} marked as down and notification sent",
+                base=baseLogging, level=INFO)
     return
 
 
@@ -476,9 +482,8 @@ def sendNotifyEmail(inSubject, inDataDict, inTemplate):
         email_server.sendmail(eMail_From, eMail_To, msg.as_string())
         email_server.close()
     except Exception as e:
-        print(e)
-        print("Houston, we have an email error {}".format(e))
-        # logging.error("SMTP error {}".format(e))
+        prDebug(f"Houston, we have an email error in sendNotifyEmail, error is {e}",
+                base=baseLogging, level=ERROR)
 
     return
 
@@ -488,7 +493,7 @@ def sendReport():
     """
   Function collates data and sends a full system report
   """
-    prDebug("Send full report", level=INFO)
+    prDebug("Send full report", base=baseLogging, level=INFO)
     allNodes = Node.objects.all()
     batWarnList = []
     batCritList = []
@@ -515,8 +520,9 @@ def sendReport():
         "nodeDown": nodeDownList,
         "base_url": eWeb_Base_URL,
     }
-    sendNotifyEmail("Home IoT report", cDict, "monitor/email/email-full.html")
-    prDebug("Sent Daily email", level=INFO)
+    sendNotifyEmail(f"{tPrefix}Home IoT report", cDict,
+                    "monitor/email/email-full.html")
+    prDebug("Sent Daily email", base=baseLogging, level=INFO)
     return
 
 
@@ -527,17 +533,17 @@ def is_json(myjson):
     """
     if not isinstance(myjson, (str)):
         return False
-    #print(f"'is_json' Input is {myjson}")
+
     try:
         json_object = json.loads(myjson)
     except ValueError as e:
-        #print(f"'is_json' NOT valid JSON")
+        #prDebug(f"'is_json' NOT valid JSON", base=baseLogging, level=DEBUG)
         return False
     if not isinstance(json_object, (dict)):
         #print(f"'is_json' Output not dict")
         return False
 
-    #print(f"'is_json' valid JSON, Output is {json_object}, type is: {type(json_object)}")
+    #prDebug(f"'is_json' valid JSON, Output is {json_object}, type is: {type(json_object)}", base=baseLogging, level=DEBUG)
     return True
 
 
@@ -599,7 +605,7 @@ def mqtt_monitor():
             # update the checkpoint timer
             checkTimer = timezone.now()  # reset timer
 
-            prDebug("Timer check", level=INFO)
+            prDebug("Timer check", base=baseLogging, level=INFO)
 
             allNodes = Node.objects.all()
 
@@ -610,19 +616,18 @@ def mqtt_monitor():
                         minutes=n.allowedDowntime
                     ):
                         tdRunning = timezone.now() - startTime
-                        if tdRunning.total_seconds() > (
-                            n.allowedDowntime * 60
-                        ):  # dont check if nodes are down until after node allowed downtime since script started
+                        # dont check if nodes are down until after node allowed downtime since script started
+                        if (tdRunning.total_seconds() > (n.allowedDowntime * 60) or bTesting):
                             prDebug(
-                                f"Node {n} not seen for over {n.allowedDowntime} minutes", level=WARNING)
+                                f"Node {n} not seen for over {n.allowedDowntime} minutes", base=baseLogging, level=WARNING)
                             missing_node(n)
 
             # this section is ony run if the script has been running for an hour
             if (timezone.now() - startTime) > datetime.timedelta(hours=1):
-                #prDebug(f"Script running for more than 1 hour", level=DEBUG)
+                #prDebug(f"Script running for more than 1 hour", base=baseLogging, level=DEBUG)
                 if timezone.now().hour > 7:  # run at certain time of the day
                     lsConf = Setting.objects.get(sKey="LastSummary")
-                    #prDebug(f"Check: stored {lsConf.dValue}", level=DEBUG)
+                    #prDebug(f"Check: stored {lsConf.dValue}", base=baseLogging, level=DEBUG)
                     if (lsConf.dValue.day != timezone.now().day):
                         prDebug("Send 8am messages", level=INFO)
                         sendReport()
