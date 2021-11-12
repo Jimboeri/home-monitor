@@ -176,6 +176,7 @@ def mqtt_on_message(client, userdata, msg):
     if len(cTopic) > 2:
         if cTopic[2] == "state":
             if sPayload == "on" or sPayload == "off" or sPayload == "online":
+                nd.online()
                 if nd.status != "C":
                     node_back_online(nd)
             elif sPayload == "unavailable":
@@ -385,8 +386,9 @@ def shellies(client, userdata, msg):
                 node.macAddr = jPayload["mac"]
             if "ip" in jPayload:
                 node.ipAddr = jPayload["ip"]
-            node.online()
+            
             node.lastData = sPayload
+            node.online()
             node.save()
             return
 
@@ -457,7 +459,7 @@ def missing_node(node):
             "monitor/email/email-down.html",
         )
         prDebug(f"Node {node.nodeID} marked as down and notification sent",
-                base=baseLogging, level=INFO)
+                base=baseLogging, level=WARNING)
     return
 
 
@@ -618,8 +620,8 @@ def mqtt_monitor():
                         tdRunning = timezone.now() - startTime
                         # dont check if nodes are down until after node allowed downtime since script started
                         if (tdRunning.total_seconds() > (n.allowedDowntime * 60) or bTesting):
-                            prDebug(
-                                f"Node {n} not seen for over {n.allowedDowntime} minutes", base=baseLogging, level=WARNING)
+                            #prDebug(
+                            #    f"Node {n} not seen for over {n.allowedDowntime} minutes", base=baseLogging, level=WARNING)
                             missing_node(n)
 
             # this section is ony run if the script has been running for an hour
