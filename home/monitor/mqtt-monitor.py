@@ -33,11 +33,12 @@ django.setup()
 
 from monitor.models import Node, Setting, HassDomain, Entity, DeviceType
 
-eMqtt_client_id = os.getenv("HOME_MQTT_CLIENT_ID", "mqtt_monitor")
+eMqtt_client_id = os.getenv("HOME_MQTT_CLIENT_ID")
 eMqtt_host = os.getenv("HOME_MQTT_HOST", "mqtt.west.net.nz")
 eMqtt_port = os.getenv("HOME_MQTT_PORT", "1883")
 eMqtt_user = os.getenv("HOME_MQTT_USER", "")
 eMqtt_password = os.getenv("HOME_MQTT_PASSWORD", "")
+
 eMail_From = os.getenv("HOME_MAIL_FROM", "auto@west.net.nz")
 eMail_To = os.getenv("HOME_MAIL_To", "jim@west.kiwi")
 eMail_Server = os.getenv("HOME_MAIL_SERVER", "smtp.gmail.com")
@@ -52,9 +53,11 @@ eTesting = os.getenv("TESTING", "F")
 if eTesting == "T":
     bTesting = True
     tPrefix = "Dev system - "
+    mqttPrefix = "Ernie/"
 else:
     bTesting = False
     tPrefix = ""
+    mqttPrefix = ""
 
 # eMqtt_client_id = os.getenv('MQTT_CLIENT_ID', 'mqtt_monitor')
 print("MQTT client id is {}".format(eMqtt_client_id))
@@ -82,14 +85,18 @@ def is_number(s):
     """
     Function to see if a string is numeric
     """
-    try:
-        float(s)
+    #try:
+    #    float(s)
+    #    return True
+    #except ValueError:
+    #    pass
+
+    #return False
+
+    if isinstance(s, float):
         return True
-    except ValueError:
-        pass
-
-    return False
-
+    else:
+        return False
 
 # *******************************************************************
 def prDebug(tStr, base=baseLogging, level=INFO):
@@ -124,7 +131,7 @@ def mqtt_on_connect(client, userdata, flags, rc):
 
     prDebug("MQTT conn entered")
     for topic in Topics:
-        cTop = topic + "/#"
+        cTop = f"{mqttPrefix}{topic}/#"
         client.subscribe(cTop)
         prDebug(f"Subscribed to {cTop}")
 
@@ -139,7 +146,10 @@ def mqtt_on_message(client, userdata, msg):
     sPayload = msg.payload.decode()
 
     cTopic = msg.topic.split("/")
-    # print(cTopic)
+    if bTesting:
+        if cTopic[0] in mqttPrefix:
+            del cTopic[0]
+            #prDebug(f"Testing in progress, cTopic is now: {cTopic}", level=DEBUG)
 
     # Processing varies depending on the topic
 
@@ -242,6 +252,10 @@ def hassDiscovery(client, userdata, msg):
     prDebug(
         f"Process Home assistant discovery, topic: {msg.topic}, payload: {sPayload}", level=INFO)
     cTopic = msg.topic.split("/")
+    if bTesting:
+        if cTopic[0] in mqttPrefix:
+            del cTopic[0]
+
     if len(cTopic) < 3:
         prDebug(
             f"Homeassistant error in discovery topic: {msg.topic}", level=ERROR)
@@ -314,6 +328,10 @@ def zigbee2mqttData(client, userdata, msg):
     sPayload = msg.payload.decode()
 
     cTopic = msg.topic.split("/")
+    if bTesting:
+        if cTopic[0] in mqttPrefix:
+            del cTopic[0]
+
     cNode = cTopic[1]
 
     node, created = Node.objects.get_or_create(nodeID=cNode)
@@ -371,6 +389,10 @@ def shellies(client, userdata, msg):
     sPayload = msg.payload.decode()
 
     cTopic = msg.topic.split("/")
+    if bTesting:
+        if cTopic[0] in mqttPrefix:
+            del cTopic[0]
+            
     cNode = cTopic[1]
 
     jPayload = {}
