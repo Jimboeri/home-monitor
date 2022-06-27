@@ -145,6 +145,8 @@ def mqtt_on_message(client, userdata, msg):
 
     sPayload = msg.payload.decode()
 
+    logging.debug(f"MQTT message received")
+
     cTopic = msg.topic.split("/")
     if bTesting:
         if cTopic[0] in mqttPrefix:
@@ -325,12 +327,17 @@ def tasmotaDiscovery(client, userdata, msg):
 def zigbee2mqttData(client, userdata, msg):
     """
     """
+    logging.info(f"zigbee data processing")
     sPayload = msg.payload.decode()
 
     cTopic = msg.topic.split("/")
     if bTesting:
         if cTopic[0] in mqttPrefix:
             del cTopic[0]
+
+        if cTopic[1] == "bridge" and cTopic[2] == "devices":
+            with open('bridge-devices.json', 'w') as f:
+                f.write(sPayload)
 
     cNode = cTopic[1]
 
@@ -365,18 +372,15 @@ def zigbee2mqttData(client, userdata, msg):
             if e.json_key in jPayload:
                 if is_number(jPayload[e.json_key]):
                     e.num_state = float(jPayload[e.json_key])
-                    prDebug(
-                        f"Node {node.nodeID}, entity {e.entityID} numeric update", level=DEBUG)
+                    #logging.debug(f"Node {node.nodeID}, entity {e.entityID} numeric update")
                 else:
                     e.text_state = jPayload[e.json_key]
-                    prDebug(
-                        f"Node {node.nodeID}, entity {e.entityID} text update", level=DEBUG)
+                    #logging.debug(f"Node {node.nodeID}, entity {e.entityID} text update")
                 e.save()
 
     node.online()
-    node.save()
-    prDebug(
-        f"Node {node.nodeID} has been updated in zigbee2mqttData", level=INFO)
+    #node.save()
+    logging.info(f"Node {node.nodeID} has been updated in zigbee2mqttData")
 
     return
 
@@ -577,14 +581,16 @@ def mqtt_monitor():
     """
 
     # Set up logging
-    print("Home monitor script Starting")
-    syslog.syslog("Home monitor script Starting")
-    FORMAT = "%(asctime)-15s %(message)s"
-    logging.basicConfig(
-        filename="home-monitor.log",
-        level=WARNING,
-        format=FORMAT,
-    )
+    #print("Home monitor script Starting")
+    #syslog.syslog("Home monitor script Starting")
+    #FORMAT = "%(asctime)-15s %(message)s"
+    #logging.basicConfig(
+    #    filename="home-monitor.log",
+    #    level=WARNING,
+    #    format=FORMAT,
+    #)
+
+    logging.info("Script has started logging")
 
     # functions called by mqtt client
     client.on_connect = mqtt_on_connect
@@ -593,6 +599,8 @@ def mqtt_monitor():
     # set up the local MQTT environment
     client.username_pw_set(eMqtt_user, eMqtt_password)
     client.connect(eMqtt_host)
+
+    logging.info(f"MQTT connected to host: {eMqtt_host}, with user {eMqtt_user}")
 
     # used to manage mqtt subscriptions
     client.loop_start()
