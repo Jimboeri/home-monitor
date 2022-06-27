@@ -2,4 +2,7 @@ docker-compose.yml
 home/monitor/notify.pkl
 home/monitor/migrations/*.py
 home/monitor/home-monitor.log
+<<<<<<< HEAD
 *.log
+=======
+>>>>>>> 9bedd1f450413b528ef4089e148ae516f83e139a
