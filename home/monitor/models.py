@@ -53,6 +53,7 @@ class Node(models.Model):
         default=60,
         help_text="Minutes that the node can be 'unheard' before being marked as Offline",
     )
+    battPower = models.BooleanField(default=False, help_text="True if the node is battery powered")
     battName = models.CharField(
         max_length=30,
         null=True,

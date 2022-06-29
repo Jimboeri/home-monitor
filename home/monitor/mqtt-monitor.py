@@ -145,7 +145,7 @@ def mqtt_on_message(client, userdata, msg):
 
     sPayload = msg.payload.decode()
 
-    logging.debug(f"MQTT message received")
+    #logging.debug(f"MQTT message received")
 
     cTopic = msg.topic.split("/")
     if bTesting:
@@ -404,6 +404,7 @@ def shellies(client, userdata, msg):
         jPayload = json.loads(sPayload)
 
     if cTopic[1] == "announce":
+        """
         if "id" in jPayload:
             node, created = Node.objects.get_or_create(nodeID=jPayload["id"])
             if "model" in jPayload:
@@ -416,7 +417,8 @@ def shellies(client, userdata, msg):
             node.lastData = sPayload
             node.online()
             node.save()
-            return
+        """
+        return
 
     node, created = Node.objects.get_or_create(nodeID=cNode)
     if created:
@@ -440,6 +442,10 @@ def shellies(client, userdata, msg):
                 node.macAddr = jPayload["mac"]
             if "ip" in jPayload:
                 node.ipAddr = jPayload["ip"]
+        if cTopic[2] == "info":
+            if "wifi_sta" in jPayload:
+                if "rssi" in jPayload["wifi_sta"]:
+                    node.RSSI = jPayload["wifi_sta"]["rssi"]
 
     node.online()
     node.lastData = sPayload
