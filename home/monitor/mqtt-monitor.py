@@ -127,15 +127,15 @@ def mqtt_on_connect(client, userdata, flags, rc):
     """
       This procedure is called on connection to the mqtt broker
     """
-    Topics = ["house", "zigbee2mqtt", "shellies", "homeassistant"]
+    Topics = ["house", "zigbee2mqtt", "shellies", "homeassistant", "tasmota"]
 
-    prDebug("MQTT conn entered")
+    logging.info("MQTT conn entered")
     for topic in Topics:
         cTop = f"{mqttPrefix}{topic}/#"
         client.subscribe(cTop)
-        prDebug(f"Subscribed to {cTop}")
+        logging.info(f"Subscribed to {cTop}")
 
-    prDebug("MQTTConn finished")
+    logging.info("MQTTConn finished")
     return
 
 
@@ -177,12 +177,12 @@ def mqtt_on_message(client, userdata, msg):
         #print(f"on_msg, JSON check: Input: {sPayload}, output: {jPayload}, passed as valid")
 
     cNodeID = cTopic[1]
-    prDebug(f"NodeID: {cNodeID}", level=DEBUG)
+    logging.debug(f"NodeID: {cNodeID}")
 
     try:
         nd, created = Node.objects.get_or_create(nodeID=cNodeID)
     except Exception as e:
-        prDebug(f"Node creation error: {e}", level=ERROR)
+        logging.error(f"Node creation error: {e}")
         return
 
     if len(cTopic) > 2:
@@ -192,7 +192,7 @@ def mqtt_on_message(client, userdata, msg):
                 if nd.status != "C":
                     node_back_online(nd)
             elif sPayload == "unavailable":
-                prDebug(f"Node {nd} is unavailable", level=DEBUG)
+                logging.debug(f"Node {nd} is unavailable")
                 if nd.status != "X":
                     missing_node(nd)
             return
@@ -200,7 +200,7 @@ def mqtt_on_message(client, userdata, msg):
     lEnt = Entity.objects.filter(state_topic=msg.topic)
     if len(lEnt) > 0:
         if len(lEnt) > 1:
-            prDebug(f"Found multiple entities for topic {msg.topic}")
+            logging.warning(f"Found multiple entities for topic {msg.topic}")
         else:
             lEnt[0].text_state = sPayload
             if is_number(sPayload):
@@ -220,7 +220,7 @@ def mqtt_on_message(client, userdata, msg):
     nd.status = "C"
     nd.lastData = sPayload.replace('","', '", "')
     if nd.battName:
-        prDebug("Battery name is {}".format(nd.battName), level=DEBUG)
+        logging.debug("Battery name is {}".format(nd.battName))
         if nd.battName in jPayload:
             nd.battLevel = jPayload[nd.battName]
             nd.battMonitor = True
@@ -231,17 +231,15 @@ def mqtt_on_message(client, userdata, msg):
             else:
                 nd.battStatus = "C"
     if "RSSI" in jPayload:
-        prDebug(f"RSSI: {jPayload}", level=DEBUG)
+        logging.debug(f"RSSI: {jPayload}")
         nd.RSSI = float(jPayload["RSSI"])
 
     nd.save()
 
     if created:
-        prDebug("Node {} has been created in mqtt_on_message".format(
-            nd.nodeID), level=DEBUG)
+        logging.debug(f"Node {nd.nodeID} has been created in mqtt_on_message")
     else:
-        prDebug("Node {} has been updated in mqtt_on_message".format(
-            nd.nodeID), level=DEBUG)
+        logging.debug(f"Node {nd.nodeID} has been updated in mqtt_on_message")
 
 # ********************************************************************
 
@@ -251,22 +249,22 @@ def hassDiscovery(client, userdata, msg):
     """
 
     sPayload = msg.payload.decode()
-    prDebug(
-        f"Process Home assistant discovery, topic: {msg.topic}, payload: {sPayload}", level=INFO)
+    logging.info(
+        f"Process Home assistant discovery, topic: {msg.topic}, payload: {sPayload}")
     cTopic = msg.topic.split("/")
     if bTesting:
         if cTopic[0] in mqttPrefix:
             del cTopic[0]
 
     if len(cTopic) < 3:
-        prDebug(
-            f"Homeassistant error in discovery topic: {msg.topic}", level=ERROR)
+        logging.error(
+            f"Homeassistant error in discovery topic: {msg.topic}")
         return
     try:
         domain, created = HassDomain.objects.get_or_create(name=cTopic[1])
     except Exception as e:
-        prDebug(
-            f"Error accessing/creating Domain record in hassDiscovery, error is: {e}", level=ERROR)
+        logging.error(
+            f"Error accessing/creating Domain record in hassDiscovery, error is: {e}")
         return
 
     if is_json(sPayload):
@@ -465,8 +463,7 @@ def node_back_online(node):
     node.textStatus = "Online"
     node.lastseen = timezone.now()
     node.save()
-    prDebug(f"Node {node.nodeID} marked as back on line, no notification",
-            base=baseLogging, level=DEBUG)
+    logging.debug(f"Node {node.nodeID} marked as back on line, no notification")
     return
 
 
@@ -490,8 +487,7 @@ def missing_node(node):
             cDict,
             "monitor/email/email-down.html",
         )
-        prDebug(f"Node {node.nodeID} marked as down and notification sent",
-                base=baseLogging, level=WARNING)
+        logging.warning(f"Node {node.nodeID} marked as down and notification sent")
     return
 
 
@@ -516,8 +512,7 @@ def sendNotifyEmail(inSubject, inDataDict, inTemplate):
         email_server.sendmail(eMail_From, eMail_To, msg.as_string())
         email_server.close()
     except Exception as e:
-        prDebug(f"Houston, we have an email error in sendNotifyEmail, error is {e}",
-                base=baseLogging, level=ERROR)
+        logging.error(f"Houston, we have an email error in sendNotifyEmail, error is {e}")
 
     return
 
@@ -527,7 +522,7 @@ def sendReport():
     """
   Function collates data and sends a full system report
   """
-    prDebug("Send full report", base=baseLogging, level=INFO)
+    logging.info("Send full report")
     allNodes = Node.objects.all()
     batWarnList = []
     batCritList = []
@@ -556,7 +551,7 @@ def sendReport():
     }
     sendNotifyEmail(f"{tPrefix}Home IoT report", cDict,
                     "monitor/email/email-full.html")
-    prDebug("Sent Daily email", base=baseLogging, level=INFO)
+    logging.info("Sent Daily email")
     return
 
 
@@ -643,7 +638,7 @@ def mqtt_monitor():
             # update the checkpoint timer
             checkTimer = timezone.now()  # reset timer
 
-            prDebug("Timer check", base=baseLogging, level=INFO)
+            logging.info("Timer check")
 
             allNodes = Node.objects.all()
 
@@ -656,9 +651,9 @@ def mqtt_monitor():
                         tdRunning = timezone.now() - startTime
                         # dont check if nodes are down until after node allowed downtime since script started
                         if (tdRunning.total_seconds() > (n.allowedDowntime * 60) or bTesting):
-                            #prDebug(
-                            #    f"Node {n} not seen for over {n.allowedDowntime} minutes", base=baseLogging, level=WARNING)
-                            missing_node(n)
+                            # Only if been running for over an hour
+                            if startTime + datetime.timedelta(hours=1) < timezone.now():
+                                missing_node(n)
 
             # this section is ony run if the script has been running for an hour
             if (timezone.now() - startTime) > datetime.timedelta(hours=1):
@@ -667,7 +662,7 @@ def mqtt_monitor():
                     lsConf = Setting.objects.get(sKey="LastSummary")
                     #prDebug(f"Check: stored {lsConf.dValue}", base=baseLogging, level=DEBUG)
                     if (lsConf.dValue.day != timezone.now().day):
-                        prDebug("Send 8am messages", level=INFO)
+                        logging.info("Send 8am messages")
                         sendReport()
                         lsConf.dValue = timezone.now()
                         lsConf.save()

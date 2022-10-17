@@ -6,3 +6,4 @@ home/monitor/home-monitor.log
 *.log
 =======
 >>>>>>> 9bedd1f450413b528ef4089e148ae516f83e139a
+home/.env
