@@ -95,10 +95,11 @@ class Node(models.Model):
     def __str__(self):
         return self.nodeID
 
-    def online(self):
+    def online(self, msg):
         self.status = 'C'
         self.textStatus = "Online"
         self.lastseen = timezone.now()
+        self.lstMQTTTopic = msg.topic
         self.save()
         return
 

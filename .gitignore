@@ -4,3 +4,5 @@ home/monitor/migrations/*.py
 home/monitor/home-monitor.log
 *.log
 home/.env
+.env
+home/monitor/bridge-devices.json
