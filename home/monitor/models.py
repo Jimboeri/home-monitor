@@ -77,7 +77,8 @@ class Node(models.Model):
         help_text="'G' for good, 'W' for warning, 'C' for critically low, ' ' for not monitored",
     )
     linkQuality = models.FloatField(
-        default=0.0, help_text="The link quality of the node"
+        default=0.0, help_text="The link quality of the node",null=True, 
+        blank=True,
     )
     RSSI = models.FloatField(
         default=0.0, help_text="Received Signal Strength Indicator"

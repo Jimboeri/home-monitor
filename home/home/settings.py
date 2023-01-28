@@ -147,3 +147,5 @@ LOGGING = {
 STATIC_URL = '/static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
+
+CSRF_TRUSTED_ORIGINS = ['https://*.west.net.nz']
