@@ -177,7 +177,7 @@ def mqtt_on_message(client, userdata, msg):
         #print(f"on_msg, JSON check: Input: {sPayload}, output: {jPayload}, passed as valid")
 
     cNodeID = cTopic[1]
-    logging.debug(f"NodeID: {cNodeID}")
+    #logging.debug(f"NodeID: {cNodeID}")
 
     try:
         nd, created = Node.objects.get_or_create(nodeID=cNodeID)
@@ -231,7 +231,7 @@ def mqtt_on_message(client, userdata, msg):
             else:
                 nd.battStatus = "C"
     if "RSSI" in jPayload:
-        logging.debug(f"RSSI: {jPayload}")
+        #logging.debug(f"RSSI: {jPayload}")
         nd.RSSI = float(jPayload["RSSI"])
 
     nd.save()
@@ -239,7 +239,8 @@ def mqtt_on_message(client, userdata, msg):
     if created:
         logging.debug(f"Node {nd.nodeID} has been created in mqtt_on_message")
     else:
-        logging.debug(f"Node {nd.nodeID} has been updated in mqtt_on_message")
+        #logging.debug(f"Node {nd.nodeID} has been updated in mqtt_on_message")
+        pass
 
 # ********************************************************************
 
@@ -249,8 +250,8 @@ def hassDiscovery(client, userdata, msg):
     """
 
     sPayload = msg.payload.decode()
-    logging.info(
-        f"Process Home assistant discovery, topic: {msg.topic}, payload: {sPayload}")
+    #logging.info(
+    #    f"Process Home assistant discovery, topic: {msg.topic}, payload: {sPayload}")
     cTopic = msg.topic.split("/")
     if bTesting:
         if cTopic[0] in mqttPrefix:
@@ -325,7 +326,7 @@ def tasmotaDiscovery(client, userdata, msg):
 def zigbee2mqttData(client, userdata, msg):
     """
     """
-    logging.info(f"zigbee data processing")
+    #logging.info(f"zigbee data processing")
     sPayload = msg.payload.decode()
 
     cTopic = msg.topic.split("/")
@@ -377,8 +378,8 @@ def zigbee2mqttData(client, userdata, msg):
                 e.save()
 
     node.online(msg)
-    #node.save()
-    logging.info(f"Node {node.nodeID} has been updated in zigbee2mqttData")
+    node.save()
+    #logging.info(f"Node {node.nodeID} has been updated in zigbee2mqttData")
 
     return
 
@@ -654,6 +655,7 @@ def mqtt_monitor():
                             # Only if been running for over an hour
                             if startTime + datetime.timedelta(hours=1) < timezone.now():
                                 missing_node(n)
+                            missing_node(n)
 
             # this section is ony run if the script has been running for an hour
             if (timezone.now() - startTime) > datetime.timedelta(hours=1):

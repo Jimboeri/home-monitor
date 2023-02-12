@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'mailer',
 ]
 
 MIDDLEWARE = [
@@ -147,5 +148,13 @@ LOGGING = {
 STATIC_URL = '/static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
+
+EMAIL_BACKEND = "mailer.backend.DbBackend"
+
+EMAIL_HOST = os.environ.get("HOME_MAIL_SERVER", "smtp.gmail.com")
+EMAIL_PORT = os.environ.get("HOME_MAIL_PORT", 5432),
+EMAIL_HOST_USER = os.environ.get("HOME_MAIL_ACCT", "auto@west.net.nz"),
+EMAIL_HOST_PASSWORD = os.environ.get("HOME_MAIL_PASSWORD"),
+EMAIL_USE_SSL = True
 
 CSRF_TRUSTED_ORIGINS = ['https://*.west.net.nz']
