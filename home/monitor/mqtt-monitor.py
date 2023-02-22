@@ -348,7 +348,7 @@ def zigbee2mqttData(client, userdata, msg):
 
     if is_json(sPayload):
         jPayload = json.loads(sPayload)
-        if "battery" in jPayload:
+        if "battery" in jPayload and isinstance(jPayload["battery"], (int, float)):
             node.battLevel = jPayload["battery"]
             node.battWarn = 60
             node.battCritical = 50
