@@ -54,16 +54,20 @@ if eTesting == "T":
     bTesting = True
     tPrefix = "Dev system - "
     mqttPrefix = "Ernie/"
+    scriptID = "Dev-MQTT-Monitor"
 else:
     bTesting = False
     tPrefix = ""
     mqttPrefix = ""
+    scriptID = "MQTT-Monitor"
 
 # eMqtt_client_id = os.getenv('MQTT_CLIENT_ID', 'mqtt_monitor')
 print("MQTT client id is {}".format(eMqtt_client_id))
+print(f"MQTT Prefix is {mqttPrefix}")
 # The mqtt client is initialised
 # client = mqtt.Client(client_id=eMqtt_client_id)
 client = mqtt.Client()
+msgCount = 0
 
 # ********************************************************************
 
@@ -135,6 +139,14 @@ def mqtt_on_connect(client, userdata, flags, rc):
         client.subscribe(cTop)
         logging.info(f"Subscribed to {cTop}")
 
+    client.publish(
+        f"{mqttPrefix}monitor/{scriptID}/LWT",
+        payload="Running",
+        qos=0,
+        retain=True,
+    )
+    logging.info("Sent connection message")
+
     logging.info("MQTTConn finished")
     return
 
@@ -142,10 +154,12 @@ def mqtt_on_connect(client, userdata, flags, rc):
 # ********************************************************************
 def mqtt_on_message(client, userdata, msg):
     """This procedure is called each time a mqtt message is received"""
+    global msgCount
 
     sPayload = msg.payload.decode()
 
     #logging.debug(f"MQTT message received")
+    msgCount = msgCount + 1
 
     cTopic = msg.topic.split("/")
     if bTesting:
@@ -576,11 +590,24 @@ def is_json(myjson):
     #prDebug(f"'is_json' valid JSON, Output is {json_object}, type is: {type(json_object)}", base=baseLogging, level=DEBUG)
     return True
 
+# ******************************************************************
+def dbSetup():
+    """
+    Checks database for config data and sets defaults if not present
+    Sets up groups and sets permissions if not present
+    """
+
+    statusTimer, created = Setting.objects.get_or_create(sKey="StatusTimer")
+    if created:
+        statusTimer.fValue = 5
+        statusTimer.save()
+    
 
 # ******************************************************************
 def mqtt_monitor():
     """ The main program that sends updates to the MQTT system
     """
+    global scriptID, msgCount
 
     # Set up logging
     #print("Home monitor script Starting")
@@ -594,9 +621,16 @@ def mqtt_monitor():
 
     logging.info("Script has started logging")
 
+    dbSetup()
+
     # functions called by mqtt client
     client.on_connect = mqtt_on_connect
     client.on_message = mqtt_on_message
+
+    client.will_set(
+        f"{mqttPrefix}monitor/{scriptID}/LWT", payload="Failed", qos=0, retain=True
+    )
+    logging.info("Set WILL message")
 
     # set up the local MQTT environment
     client.username_pw_set(eMqtt_user, eMqtt_password)
@@ -625,6 +659,8 @@ def mqtt_monitor():
     }
 
     startTime = timezone.now()
+    statusTimer = timezone.now()
+    statusTimerConfig = Setting.objects.filter(sKey="StatusTimer")
 
     if bTesting:
         sendReport()
@@ -669,6 +705,30 @@ def mqtt_monitor():
                         lsConf.dValue = timezone.now()
                         lsConf.save()
                         # update out notification data and save
+
+        if (timezone.now() - statusTimer) > datetime.timedelta(minutes=statusTimerConfig[0].fValue):
+            statusTimerConfig = Setting.objects.filter(sKey="StatusTimer")
+            logging.info("Send MQTT Status")
+            statusTimer = timezone.now()  # reset timer
+            upTime = (
+                timezone.make_aware(
+                    datetime.datetime.now(), timezone.get_current_timezone()
+                )
+                - startTime
+            )
+
+            payLoad = {
+                "scriptName": scriptID,
+                "msgCount": msgCount,
+                "upTime(s)": upTime.total_seconds(),
+            }
+
+            client.publish(
+                f"{mqttPrefix}monitor/{scriptID}/status",
+                payload=json.dumps(payLoad),
+                qos=0,
+                retain=False,
+            )
 
 
 # ********************************************************************
