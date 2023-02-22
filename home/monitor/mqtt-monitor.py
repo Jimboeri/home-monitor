@@ -358,9 +358,9 @@ def zigbee2mqttData(client, userdata, msg):
                 node.battStatus = "W"
             else:
                 node.battStatus = "C"
-        if "voltage" in jPayload:
+        if "voltage" in jPayload and isinstance(jPayload["voltage"], (int, float)):
             node.battVoltage = jPayload["voltage"] / 1000
-        if "linkquality" in jPayload:
+        if "linkquality" in jPayload and isinstance(jPayload["linkquality"], (int, float)):
             node.linkQuality = jPayload["linkquality"]
 
         dev, created = DeviceType.objects.get_or_create(name="Zigbee")
