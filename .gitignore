@@ -6,3 +6,5 @@ home/monitor/home-monitor.log
 home/.env
 .env
 home/monitor/bridge-devices.json
+db-backup/postgres-db.sql
+

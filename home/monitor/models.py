@@ -89,6 +89,7 @@ class Node(models.Model):
     ipAddr = models.CharField(max_length=20, null=True, blank=True)
     generated = models.CharField(max_length=30, null=True, blank=True)
     lstMQTTTopic = models.CharField(max_length=100, null=True, blank=True)
+    storeMQTT = models.BooleanField(default=False)
     
     class Meta:
         ordering = ["nodeID"]
@@ -122,29 +123,6 @@ class Entity(models.Model):
         return(f"Node: {self.node.nodeID}, Entity: {self.entityID}")
 
 
-# class Profile(models.Model):
-# user = models.OneToOneField(User, on_delete=models.CASCADE)
-# phone_no = models.CharField(max_length=30, blank=True)
-# def __str__(self):
-#  return(self.user.username)
-
-# class UserNotify(models.Model):
-#  node = models.ForeignKey(Node, on_delete=models.CASCADE)
-#  user = models.ForeignKey(Profile, on_delete=models.CASCADE)
-#  send_email = models.BooleanField(default=False)
-#  send_SMS = models.BooleanField(default=False)
-#  def __str__(self):
-#    return("{} notifications to {}".format(self.node.NodeID, self.user.user.username))
-
-# @receiver(post_save, sender=User)
-# def create_user_profile(sender, instance, created, **kwargs):
-#    if created:
-#        Profile.objects.create(user=instance)
-
-# @receiver(post_save, sender=User)
-# def save_user_profile(sender, instance, **kwargs):
-#    instance.profile.save()
-
 
 class Setting(models.Model):
     sKey = models.CharField(max_length=30)
@@ -154,3 +132,24 @@ class Setting(models.Model):
 
     def __str__(self):
         return "{}: {}".format(self.sKey, self.sValue)
+
+class MqttStore(models.Model):
+    """
+    Stores all mqtt messages
+    """
+
+    node = models.ForeignKey(
+        Node, null=True, on_delete=models.SET_NULL, related_name="mqsNode"
+    )
+    received = models.DateTimeField(auto_now=True)
+    topic = models.CharField(max_length=100)
+    payload = models.TextField()
+    qos = models.IntegerField()
+    retained = models.BooleanField()
+
+    class Meta:
+        verbose_name = "MqttStore"
+        ordering = ["-received"]
+
+    def __str__(self):
+        return f"mqtt: {self.node.nodeID}, topic: {self.topic}, payload: {self.payload}, received: {self.received}, retained: {self.retained}"

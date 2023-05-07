@@ -32,6 +32,7 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "home.settings")
 django.setup()
 
 from monitor.models import Node, Setting, HassDomain, Entity, DeviceType
+import monitor.models
 
 eMqtt_client_id = os.getenv("HOME_MQTT_CLIENT_ID")
 eMqtt_host = os.getenv("HOME_MQTT_HOST", "mqtt.west.net.nz")
@@ -125,6 +126,16 @@ def prDebug(tStr, base=baseLogging, level=INFO):
             logging.critical(tStr)
     return
 
+# ********************************************************************
+def storeMqtt(inNode, msg):
+    """
+    Store a record if the node asks for it
+    """
+    if inNode.storeMQTT:
+        MQTTmsg = monitor.models.MqttStore(node= inNode, topic = msg.topic, payload = msg.payload, qos = msg.qos, retained = msg.retain)
+        MQTTmsg.save()
+        logging.debug(f"Store MQTT rec for node {inNode.nodeID}")
+    return
 
 # ********************************************************************
 def mqtt_on_connect(client, userdata, flags, rc):
@@ -199,6 +210,8 @@ def mqtt_on_message(client, userdata, msg):
         logging.error(f"Node creation error: {e}")
         return
  
+    storeMqtt(nd, msg)
+
     if len(cTopic) > 2:
         if cTopic[2] == "state":
             if sPayload == "on" or sPayload == "off" or sPayload == "online":
@@ -303,6 +316,7 @@ def hassDiscovery(client, userdata, msg):
                             node.devType = dev
 
                 node.save()
+                storeMqtt(node, msg)
 
                 if "unique_id" in jPayload:
                     entity, eCreated = Entity.objects.get_or_create(
@@ -359,6 +373,8 @@ def zigbee2mqttData(client, userdata, msg):
     node.lastseen = timezone.now()
     if created:
         node.generated = "zigbee2mqttData"
+
+    storeMqtt(node, msg)
 
     if is_json(sPayload):
         jPayload = json.loads(sPayload)
@@ -436,6 +452,8 @@ def shellies(client, userdata, msg):
     node, created = Node.objects.get_or_create(nodeID=cNode)
     if created:
         node.generated = "shellies"
+
+    storeMqtt(node, msg)
 
     # Device type processing
     dev, devCreated = DeviceType.objects.get_or_create(name="Shelly")
