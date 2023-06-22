@@ -1,4 +1,4 @@
-FROM python:3.12.0a5-slim
+FROM python:3.12.0b3-slim
 ENV PYTHONDONTWRITEBYTECODE 1 \
     PYTHONUNBUFFERED 1
 RUN mkdir /code
